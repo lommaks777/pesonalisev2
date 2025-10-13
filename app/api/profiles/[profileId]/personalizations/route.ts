@@ -8,12 +8,13 @@ interface Params {
 
 export async function GET(
   _request: Request,
-  context: { params: Params }
+  context: { params: Promise<Params> }
 ) {
-  const { profileId } = context.params;
+  const { profileId } = await context.params;
 
   const supabase = createSupabaseServerClient();
 
+  // @ts-expect-error - Supabase type incompatibility with Next.js 15 params
   const { data, error } = await supabase
     .from("personalized_lesson_descriptions")
     .select("lesson_id, content")

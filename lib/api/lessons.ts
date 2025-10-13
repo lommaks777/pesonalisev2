@@ -3,7 +3,7 @@ import type { Database } from "@/lib/supabase/types";
 
 export type LessonWithDescription = Database["public"]["Tables"]["lessons"]["Row"] & {
   lesson_descriptions?: {
-    data: unknown;
+    data: Record<string, unknown> | null;
   } | null;
 };
 
@@ -19,5 +19,6 @@ export async function getLessons(): Promise<LessonWithDescription[]> {
     return [];
   }
 
+  // @ts-expect-error - Supabase type inference with joins returns complex union types
   return data ?? [];
 }

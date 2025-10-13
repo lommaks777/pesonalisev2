@@ -8,7 +8,7 @@ import { getProfiles } from "@/lib/api/profiles";
 import { getPersonalizationsByProfile } from "@/lib/api/personalizations";
 
 interface DashboardPageProps {
-  searchParams: Promise<{ profileId?: string }> | { profileId?: string };
+  searchParams: Promise<{ profileId?: string }>;
 }
 
 async function LessonsList({ profileId }: { profileId?: string }) {
@@ -65,7 +65,7 @@ async function LessonsList({ profileId }: { profileId?: string }) {
                   <section className="space-y-2">
                     <h4 className="text-sm font-semibold">Базовое описание</h4>
                     <pre className="text-xs bg-muted/40 rounded p-3 overflow-x-auto">
-                      {JSON.stringify(lesson.lesson_descriptions.data, null, 2)}
+                      {JSON.stringify(lesson.lesson_descriptions.data as Record<string, unknown>, null, 2)}
                     </pre>
                   </section>
                 )}

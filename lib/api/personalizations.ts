@@ -1,9 +1,13 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/types";
 
-type PersonalizedRow = Database["public"]["Tables"]["personalized_lesson_descriptions"]["Row"];
+export type Personalization = {
+  lesson_id: string;
+  content: unknown;
+};
 
-export async function getPersonalizationsByProfile(profileId: string) {
+export async function getPersonalizationsByProfile(
+  profileId: string
+): Promise<Personalization[]> {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("personalized_lesson_descriptions")
@@ -13,10 +17,10 @@ export async function getPersonalizationsByProfile(profileId: string) {
 
   if (error) {
     console.error("Не удалось получить персонализации:", error.message);
-    return [] as PersonalizedRow[];
+    return [];
   }
 
-  return data ?? [];
+  return (data ?? []) as Personalization[];
 }
 
 
