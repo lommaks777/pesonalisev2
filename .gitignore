@@ -39,8 +39,23 @@ Thumbs.db
 
 # Архивированные старые версии
 trash/
-node_modules
 
-# Автотесты и отчёты
-webapp/playwright-report/
-webapp/test-results/
+# Next.js
+/.next/
+/out/
+/build
+node_modules
+.pnpm-debug.log*
+next-env.d.ts
+
+# Testing
+playwright-report/
+test-results/
+/coverage
+
+# Env files
+.env*
+!.env.example
+
+# Vercel
+.vercel
