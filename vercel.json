@@ -1,15 +1,12 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "*.php",
-      "use": "@vercel/php"
+  "buildCommand": "cd webapp && pnpm install && pnpm build",
+  "outputDirectory": "webapp/.next",
+  "devCommand": "cd webapp && pnpm dev",
+  "installCommand": "cd webapp && pnpm install",
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ]
+  }
 }
