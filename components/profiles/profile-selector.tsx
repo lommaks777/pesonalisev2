@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 import type { Profile } from "@/lib/api/profiles";
 import { cn } from "@/lib/utils";
@@ -28,19 +29,35 @@ export function ProfileSelector({ profiles }: ProfileSelectorProps) {
           <li
             key={profile.id}
             className={cn(
-              "p-2 rounded-md cursor-pointer transition-colors",
-              isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+              "rounded-md transition-colors group",
+              isActive ? "bg-primary/10" : ""
             )}
-            onClick={() => handleSelect(profile.id)}
           >
-            <div className="font-medium">
-              {profile.name ?? profile.user_identifier}
-            </div>
-            {profile.course_slug && (
-              <div className="text-xs text-muted-foreground">
-                {profile.course_slug}
+            <div
+              className={cn(
+                "p-2 cursor-pointer",
+                isActive ? "text-primary" : "hover:bg-muted"
+              )}
+              onClick={() => handleSelect(profile.id)}
+            >
+              <div className="font-medium">
+                {profile.name ?? profile.user_identifier}
               </div>
-            )}
+              {profile.course_slug && (
+                <div className="text-xs text-muted-foreground">
+                  {profile.course_slug}
+                </div>
+              )}
+            </div>
+            <div className="px-2 pb-2">
+              <Link
+                href={`/profile/${profile.id}`}
+                className="text-xs text-primary hover:underline inline-block"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Управление персонализацией →
+              </Link>
+            </div>
           </li>
         );
       })}
