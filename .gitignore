@@ -1,0 +1,46 @@
+# Игнорируем большие файлы для Railway
+store/
+cache/
+*.mp4
+*.webm
+*.wav
+*.mp3
+
+# Исключения - оставляем только структуру
+!store/
+!store/*/
+!store/*/course.json
+!store/*/lessons/
+!store/*/lessons/*/
+!store/*/lessons/*/lesson.json
+
+# Временные файлы
+temp_*
+*_compressed*
+*_part*
+
+# Логи
+*.log
+error.log
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# IDE файлы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# PHP файлы
+*.tmp
+*.cache
+
+# Архивированные старые версии
+trash/
+node_modules
+
+# Автотесты и отчёты
+webapp/playwright-report/
+webapp/test-results/

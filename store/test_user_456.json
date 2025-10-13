@@ -1,0 +1,23 @@
+{
+    "user_id": "test_user_456",
+    "name": "Мария",
+    "lvl": "intermediate",
+    "goal": "upgrade_skill",
+    "time": "45",
+    "format": "video",
+    "survey": {
+        "experience": "some",
+        "motivation": [
+            "upgrade_technique",
+            "new_clients"
+        ],
+        "target_clients": "мужчины 40+, спортсмены",
+        "skills_wanted": "глубокая проработка, работа с травмами",
+        "fears": [
+            "hurt_client",
+            "wrong_technique"
+        ],
+        "wow_result": "получить 10 постоянных клиентов и стать экспертом"
+    },
+    "updated_at": 1757542778
+}

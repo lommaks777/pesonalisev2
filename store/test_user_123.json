@@ -1,0 +1,23 @@
+{
+    "user_id": "test_user_123",
+    "name": "Анна",
+    "lvl": "novice",
+    "goal": "start_clients",
+    "time": "30",
+    "format": "video",
+    "survey": {
+        "experience": "none",
+        "motivation": [
+            "new_profession",
+            "extra_income"
+        ],
+        "target_clients": "женщины 30+, офисные сотрудники",
+        "skills_wanted": "уверенная техника, работа с болью",
+        "fears": [
+            "technique_fail",
+            "no_clients"
+        ],
+        "wow_result": "сделать 5 платных сеансов и уверенно держать технику"
+    },
+    "updated_at": 1757471148
+}

@@ -1,0 +1,332 @@
+{
+    "Массаж ШВЗ_1_1b1071398324d404eacda741ef524cf4": {
+        "status": "completed",
+        "started_at": "2025-09-11 01:47:34",
+        "lesson": {
+            "course": "Массаж ШВЗ",
+            "lesson_number": 1,
+            "title": "Введение",
+            "kinescope_url": "https:\/\/kinescope.io\/202271407",
+            "added_at": "2025-09-11 01:44:05"
+        },
+        "completed_at": "2025-09-11 01:48:09",
+        "result": {
+            "success": true,
+            "transcript_file": "\/Users\/aleksejlomakin\/Documents\/persona\/store\/Массаж ШВЗ\/01-202271407.txt",
+            "transcript_length": 8412,
+            "video_size": false
+        }
+    },
+    "Массаж ШВЗ_2_5437922c0ee1fc64aa707256e877cabc": {
+        "status": "failed",
+        "started_at": "2025-09-11 01:48:11",
+        "lesson": {
+            "course": "Массаж ШВЗ",
+            "lesson_number": 2,
+            "title": "Теория. Мышцы, с которыми мы будем работать в этом курсе",
+            "kinescope_url": "https:\/\/kinescope.io\/5NRs6UHWgMX9RtHqxNGy8j",
+            "added_at": "2025-09-11 01:44:05"
+        },
+        "completed_at": "2025-09-11 01:49:18",
+        "result": {
+            "success": false,
+            "error": "Whisper API Error: HTTP 413 - {\n  \"error\": {\n    \"message\": \"413: Maximum content size limit (26214400) exceeded (26355252 bytes read)\",\n    \"type\": \"server_error\",\n    \"param\": null,\n    \"code\": null\n  }\n}"
+        }
+    },
+    "Массаж ШВЗ_3_850861b7b047aa0258ba8a7f28f1cb71": {
+        "status": "completed",
+        "started_at": "2025-09-11 01:49:20",
+        "lesson": {
+            "course": "Массаж ШВЗ",
+            "lesson_number": 3,
+            "title": "Диагностика и фотографирование клиента",
+            "kinescope_url": "https:\/\/kinescope.io\/202339654",
+            "added_at": "2025-09-11 01:44:05"
+        },
+        "completed_at": "2025-09-11 01:50:03",
+        "result": {
+            "success": true,
+            "transcript_file": "\/Users\/aleksejlomakin\/Documents\/persona\/store\/Массаж ШВЗ\/03-202339654.txt",
+            "transcript_length": 9443,
+            "video_size": false
+        }
+    },
+    "Массаж ШВЗ_4_be3e1f778495356e022de8d9b2b857ac": {
+        "status": "completed",
+        "started_at": "2025-09-11 01:44:57",
+        "lesson": {
+            "course": "Массаж ШВЗ",
+            "lesson_number": 4,
+            "title": "Что такое триггерные точки",
+            "kinescope_url": "https:\/\/kinescope.io\/202251264",
+            "added_at": "2025-09-11 01:39:10"
+        },
+        "completed_at": "2025-09-11 01:46:27",
+        "result": {
+            "success": true,
+            "transcript_file": "\/Users\/aleksejlomakin\/Documents\/persona\/store\/Массаж ШВЗ\/04-202251264.txt",
+            "transcript_length": 18752,
+            "video_size": false
+        }
+    },
+    "Массаж ШВЗ_5_3cfd01f661bdd0f01e9100b021f0d023": {
+        "status": "completed",
+        "started_at": "2025-09-11 01:46:29",
+        "lesson": {
+            "course": "Массаж ШВЗ",
+            "lesson_number": 5,
+            "title": "Практический урок - демонстрация",
+            "kinescope_url": "https:\/\/kinescope.io\/202148662",
+            "added_at": "2025-09-11 01:39:10"
+        },
+        "completed_at": "2025-09-11 01:47:32",
+        "result": {
+            "success": true,
+            "transcript_file": "\/Users\/aleksejlomakin\/Documents\/persona\/store\/Массаж ШВЗ\/05-202148662.txt",
+            "transcript_length": 9146,
+            "video_size": false
+        }
+    },
+    "Массаж ШВЗ_1_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:24",
+        "lesson": {
+            "id": "lesson_68c49e4e02aa50.00411495",
+            "url": "https:\/\/kinescope.io\/202271407",
+            "lesson_number": 1,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:24",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_3_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:27",
+        "lesson": {
+            "id": "lesson_68c49e4e02c568.69804391",
+            "url": "https:\/\/kinescope.io\/202339654",
+            "lesson_number": 3,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:27",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_4_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:29",
+        "lesson": {
+            "id": "lesson_68c49e4e02c900.69490485",
+            "url": "https:\/\/kinescope.io\/202251264",
+            "lesson_number": 4,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:29",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_5_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:31",
+        "lesson": {
+            "id": "lesson_68c49e4e02cc48.93887020",
+            "url": "https:\/\/kinescope.io\/202148662",
+            "lesson_number": 5,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:31",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_6_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:33",
+        "lesson": {
+            "id": "lesson_68c49e4e02cf76.06220037",
+            "url": "https:\/\/kinescope.io\/202154969",
+            "lesson_number": 6,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:33",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_7_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:35",
+        "lesson": {
+            "id": "lesson_68c49e4e02d408.41519359",
+            "url": "https:\/\/kinescope.io\/202266667",
+            "lesson_number": 7,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:35",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_8_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:37",
+        "lesson": {
+            "id": "lesson_68c49e4e02d702.63185928",
+            "url": "https:\/\/kinescope.io\/202185395",
+            "lesson_number": 8,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:37",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_9_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:39",
+        "lesson": {
+            "id": "lesson_68c49e4e02dae3.68995887",
+            "url": "https:\/\/kinescope.io\/202208484",
+            "lesson_number": 9,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:39",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_10_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:41",
+        "lesson": {
+            "id": "lesson_68c49e4e02de19.23718291",
+            "url": "https:\/\/kinescope.io\/202216996",
+            "lesson_number": 10,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:41",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_11_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:43",
+        "lesson": {
+            "id": "lesson_68c49e4e02e2a8.28443543",
+            "url": "https:\/\/kinescope.io\/202350669",
+            "lesson_number": 11,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:43",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "Массаж ШВЗ_12_d41d8cd98f00b204e9800998ecf8427e": {
+        "status": "failed",
+        "started_at": "2025-09-12 22:30:45",
+        "lesson": {
+            "id": "lesson_68c49e4e02e652.68438692",
+            "url": "https:\/\/kinescope.io\/202608042",
+            "lesson_number": 12,
+            "course": "Массаж ШВЗ",
+            "added_at": "2025-09-12 22:27:26",
+            "status": "pending"
+        },
+        "completed_at": "2025-09-12 22:30:45",
+        "result": {
+            "success": false,
+            "error": "Не удалось извлечь ID видео из URL"
+        }
+    },
+    "lesson_68c49ff8070a75.87886013": {
+        "status": "completed",
+        "updated_at": "2025-09-16 02:48:23",
+        "details": null
+    },
+    "lesson_68c49ff8071216.78485088": {
+        "status": "completed",
+        "updated_at": "2025-09-16 02:51:44",
+        "details": null
+    },
+    "lesson_68c49ff80715c6.94570677": {
+        "status": "completed",
+        "updated_at": "2025-09-16 02:58:24",
+        "details": null
+    },
+    "lesson_68c49ff80718e9.71201984": {
+        "status": "completed",
+        "updated_at": "2025-09-16 03:15:30",
+        "details": null
+    },
+    "lesson_68c49ff8071bf3.94478073": {
+        "status": "completed",
+        "updated_at": "2025-09-16 03:38:49",
+        "details": null
+    },
+    "lesson_68c49ff8072000.96581968": {
+        "status": "completed",
+        "updated_at": "2025-09-16 03:47:21",
+        "details": null
+    },
+    "lesson_68c49ff80722f4.93895442": {
+        "status": "completed",
+        "updated_at": "2025-09-16 04:07:02",
+        "details": null
+    },
+    "lesson_68c49ff80726d0.57694604": {
+        "status": "completed",
+        "updated_at": "2025-09-18 13:45:10",
+        "details": null
+    },
+    "lesson_68c49ff80729e7.21594006": {
+        "status": "pending",
+        "updated_at": "2025-09-16 02:44:50",
+        "details": null
+    },
+    "lesson_68c49ff8072e40.31106931": {
+        "status": "completed",
+        "updated_at": "2025-09-16 01:23:09",
+        "details": null
+    },
+    "lesson_68c49ff8073218.57713805": {
+        "status": "pending",
+        "updated_at": "2025-09-16 02:44:50",
+        "details": null
+    }
+}

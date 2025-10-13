@@ -1,0 +1,24 @@
+{
+    "user_id": "21179358",
+    "name": "Анастасия",
+    "lvl": null,
+    "goal": null,
+    "time": null,
+    "format": null,
+    "purpose": null,
+    "survey": {
+        "experience": "none",
+        "motivation": [
+            "extra_income",
+            "help_family"
+        ],
+        "motivation_other": null,
+        "target_clients": "богатыми людьми",
+        "skills_wanted": "хочу чтобы мои техники были незабываемые, за которые платят много денег",
+        "fears": [],
+        "fears_other": "что клиенту не понравится, будет много конкуренции, не смогу найти богатых клиентов",
+        "wow_result": "я уверено делаю техники, которые реально помогают и говорят \"ну так мне вообще никто не делал\"",
+        "practice_model": "5 любовников"
+    },
+    "updated_at": 1756996953
+}
