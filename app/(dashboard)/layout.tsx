@@ -1,4 +1,8 @@
-export default function Home() {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b bg-card">
@@ -9,13 +13,8 @@ export default function Home() {
           </nav>
         </div>
       </header>
-      <main className="flex-1 flex flex-col items-center justify-center p-24">
-        <h1 className="text-4xl font-bold">Persona App</h1>
-        <p className="mt-4">Next.js is working on Vercel!</p>
-        <a href="/dashboard" className="mt-8 text-blue-500 underline">
-          Go to Dashboard
-        </a>
-      </main>
+      <main className="flex-1 container py-8">{children}</main>
     </div>
   );
 }
+
