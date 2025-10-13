@@ -148,7 +148,8 @@ export default function SurveyIframePage() {
               required
               value={formData.real_name}
               onChange={(e) => setFormData({ ...formData, real_name: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition"
+              placeholder="Например: Мария Иванова"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -184,9 +185,9 @@ export default function SurveyIframePage() {
               id="target_clients"
               value={formData.target_clients}
               onChange={(e) => setFormData({ ...formData, target_clients: e.target.value })}
-              placeholder="Опишите ваших будущих клиентов..."
+              placeholder="Например: Буду работать с офисными работниками, у которых болит спина и шея от долгого сидения за компьютером"
               rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition resize-y"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition resize-y text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -198,9 +199,9 @@ export default function SurveyIframePage() {
               id="skills_wanted"
               value={formData.skills_wanted}
               onChange={(e) => setFormData({ ...formData, skills_wanted: e.target.value })}
-              placeholder="Опишите желаемые навыки..."
+              placeholder="Например: Хочу научиться снимать головные боли, работать с триггерными точками и делать расслабляющий массаж шеи"
               rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition resize-y"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition resize-y text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -236,9 +237,9 @@ export default function SurveyIframePage() {
               id="wow_result"
               value={formData.wow_result}
               onChange={(e) => setFormData({ ...formData, wow_result: e.target.value })}
-              placeholder="Опишите желаемый результат..."
+              placeholder="Например: Когда я смогу помочь маме избавиться от постоянных головных болей, от которых она страдает много лет"
               rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition resize-y"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition resize-y text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -246,18 +247,14 @@ export default function SurveyIframePage() {
             <label htmlFor="practice_model" className="block font-semibold text-gray-700 mb-2">
               На ком планируете практиковаться?
             </label>
-            <select
+            <textarea
               id="practice_model"
               value={formData.practice_model}
               onChange={(e) => setFormData({ ...formData, practice_model: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition"
-            >
-              <option value="">Выберите модель</option>
-              <option value="family">Семья</option>
-              <option value="friends">Друзья</option>
-              <option value="pets">Домашние животные</option>
-              <option value="mannequin">Манекен</option>
-            </select>
+              placeholder="Например: На муже и подругах, иногда на себе"
+              rows={2}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition resize-y text-gray-900 placeholder:text-gray-400"
+            />
           </div>
 
           <button
