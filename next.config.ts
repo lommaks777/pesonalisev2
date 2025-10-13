@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -8,6 +9,10 @@ const nextConfig: NextConfig = {
   eslint: {
     // ⚠️ Temporary: Ignore lint errors during build
     ignoreDuringBuilds: true,
+  },
+  experimental: {
+    // Fix workspace root warning for monorepo structure
+    outputFileTracingRoot: path.join(__dirname, "../../"),
   },
 };
 
