@@ -13,6 +13,13 @@ interface BlockRequest {
  * Генерирует HTML блок с персонализированным описанием урока
  */
 export async function POST(request: NextRequest) {
+  // Добавляем CORS заголовки
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
   try {
     const body: BlockRequest = await request.json();
     const { user_id, lesson, title, flush } = body;
@@ -20,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!user_id || !lesson) {
       return NextResponse.json(
         { ok: false, error: "user_id and lesson are required" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -48,7 +55,7 @@ export async function POST(request: NextRequest) {
             </div>
           </div>
         `,
-      });
+      }, { headers: corsHeaders });
     }
 
     // 2. Получаем урок по slug (ищем в title или другом поле)
@@ -70,7 +77,7 @@ export async function POST(request: NextRequest) {
             </div>
           </div>
         `,
-      });
+      }, { headers: corsHeaders });
     }
 
     // 3. Получаем персонализацию для этого урока
@@ -92,7 +99,7 @@ export async function POST(request: NextRequest) {
             </div>
           </div>
         `,
-      });
+      }, { headers: corsHeaders });
     }
 
     // 4. Формируем HTML из персонализации
@@ -154,14 +161,26 @@ export async function POST(request: NextRequest) {
       ok: true,
       html: html,
       cached: !flush,
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error("Error in POST /api/persona/block:", error);
     return NextResponse.json(
       { ok: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
+}
+
+// Добавляем обработчик OPTIONS для CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }
 
