@@ -110,24 +110,10 @@ export default function SurveyIframePage() {
               🎉 Персональный курс создан!
             </h2>
             <p className="text-gray-600 mb-6">
-              Ваш курс адаптирован под ваши цели и потребности.
+              Ваш курс адаптирован под ваши цели и потребности.<br/>
+              Можете перейти к следующему уроку
             </p>
           </div>
-          
-          {result.lessonLink && (
-            <a
-              href={result.lessonLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:shadow-lg transition"
-            >
-              Перейти к урокам →
-            </a>
-          )}
-          
-          <p className="mt-6 text-sm text-gray-500">
-            Сохраните эту ссылку, чтобы всегда иметь доступ к вашему персональному курсу
-          </p>
         </div>
       </div>
     );
