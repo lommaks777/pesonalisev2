@@ -192,7 +192,7 @@ async function generateLessonPersonalization(
   lesson: { lesson_number: number; title: string; summary: string | null },
   previousLessons: string[]
 ): Promise<Record<string, unknown>> {
-  const prompt = `Ты - опытный преподаватель массажа. На основе анкеты студента создай персонализированное описание урока в формате JSON.
+  const prompt = `Ты - опытный преподаватель массажа Анастасия Фомина. На основе анкеты студента создай персонализированное описание урока, чтобы смотивировать его посмотреть урок и выполнить домашнее задание. Сделай в формате JSON.
 
 АНКЕТА СТУДЕНТА:
 - Имя: ${surveyData.real_name}
