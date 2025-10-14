@@ -1,0 +1,58 @@
+<!-- 
+  ИНСТРУКЦИЯ:
+  1. Замените "НОМЕР" на номер урока (1, 2, 3...)
+  2. Замените "КЛЮЧЕВОЕ_СЛОВО" на часть названия урока для поиска
+  3. Замените "ПОЛНОЕ_НАЗВАНИЕ_УРОКА" на полное название
+  
+  Примеры:
+  Урок 1: data-lesson="демонстрация" data-title="1 Урок Демонстрация"
+  Урок 2: data-lesson="постизометрическая" data-title="Что такое постизометрическая релаксация"
+  Урок 3: data-lesson="триггерные" data-title="Что такое триггерные точки"
+-->
+
+<div id="persona-lesson-НОМЕР" 
+     data-lesson="КЛЮЧЕВОЕ_СЛОВО" 
+     data-title="ПОЛНОЕ_НАЗВАНИЕ_УРОКА" 
+     style="display:none;margin:30px 0;">
+</div>
+
+<script>
+(async function(){
+  const API = "https://pesonalisev2-zxby.vercel.app/api/persona";
+  const UID = "{uid}";
+  const userId = (/^\d{3,}$/.test(String(UID))) ? String(UID) : "guest";
+  const mount = document.getElementById('persona-lesson-НОМЕР'); // ← Замените НОМЕР
+  const lesson = mount.getAttribute('data-lesson');
+  const title = mount.getAttribute('data-title');
+
+  try {
+    const r = await fetch(`${API}/block`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ 
+        user_id: userId, 
+        lesson: lesson, 
+        title: title, 
+        flush: false 
+      })
+    });
+    
+    const data = await r.json();
+    
+    if (data && data.ok && data.html) {
+      if (!document.querySelector('link[data-persona-styles]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://pesonalisev2-zxby.vercel.app/persona/styles.css';
+        link.setAttribute('data-persona-styles', '1');
+        document.head.appendChild(link);
+      }
+      mount.innerHTML = data.html;
+      mount.style.display = 'block';
+    }
+  } catch(e) {
+    console.error('Persona block error:', e);
+  }
+})();
+</script>
+
