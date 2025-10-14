@@ -1,0 +1,170 @@
+/* Persona Block Styles */
+
+.persona-block {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  color: #fff;
+}
+
+.persona-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.persona-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: #fff;
+}
+
+.persona-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.persona-section {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.persona-section:last-child {
+  margin-bottom: 0;
+}
+
+.persona-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #fff;
+}
+
+.persona-text {
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.persona-list {
+  margin: 0;
+  padding-left: 24px;
+  list-style: none;
+}
+
+.persona-list li {
+  position: relative;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  padding-left: 8px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.persona-list li:before {
+  content: "▸";
+  position: absolute;
+  left: -16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.persona-list li:last-child {
+  margin-bottom: 0;
+}
+
+.persona-motivation {
+  background: rgba(255, 255, 255, 0.15);
+  border-left: 4px solid rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.persona-homework {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.persona-alert {
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.persona-alert h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #667eea;
+}
+
+.persona-alert p {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #555;
+}
+
+.persona-alert p:last-child {
+  margin-bottom: 0;
+}
+
+.persona-alert.persona-warning {
+  background: rgba(255, 193, 7, 0.2);
+  color: #fff;
+  border: 2px solid rgba(255, 193, 7, 0.5);
+}
+
+.persona-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 12px 28px;
+  border-radius: 25px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.persona-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .persona-block {
+    margin: 10px;
+    padding: 16px;
+  }
+
+  .persona-title {
+    font-size: 22px;
+  }
+
+  .persona-section {
+    padding: 16px;
+  }
+
+  .persona-section-title {
+    font-size: 16px;
+  }
+
+  .persona-text {
+    font-size: 15px;
+  }
+}
+

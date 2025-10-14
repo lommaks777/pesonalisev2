@@ -15,6 +15,7 @@ interface SurveyData {
   fears: string[];
   wow_result: string;
   practice_model: string;
+  uid?: string; // UID из GetCourse
 }
 
 /**
@@ -39,18 +40,63 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseServerClient();
 
     // 1. Создаем профиль пользователя
-    const userIdentifier = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    // Используем uid из GetCourse или генерируем для гостей
+    const userIdentifier = surveyData.uid || `guest_${Date.now()}`;
     
-    const { data: profile, error: profileError } = await supabase
+    // Проверяем, существует ли уже профиль с таким uid
+    const { data: existingProfile } = await supabase
       .from("profiles")
-      .insert({
-        user_identifier: userIdentifier,
-        name: surveyData.real_name,
-        course_slug: surveyData.course,
-        survey: surveyData as unknown as Record<string, unknown>,
-      })
-      .select()
-      .single();
+      .select("id")
+      .eq("user_identifier", userIdentifier)
+      .maybeSingle();
+
+    let profile;
+    
+    if (existingProfile) {
+      // Обновляем существующий профиль
+      const { data: updated, error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          name: surveyData.real_name,
+          course_slug: surveyData.course,
+          survey: surveyData as unknown as Record<string, unknown>,
+        })
+        .eq("id", existingProfile.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error("Error updating profile:", updateError);
+        return NextResponse.json(
+          { error: "Не удалось обновить профиль" },
+          { status: 500 }
+        );
+      }
+      profile = updated;
+    } else {
+      // Создаем новый профиль
+      const { data: created, error: createError } = await supabase
+        .from("profiles")
+        .insert({
+          user_identifier: userIdentifier,
+          name: surveyData.real_name,
+          course_slug: surveyData.course,
+          survey: surveyData as unknown as Record<string, unknown>,
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error("Error creating profile:", createError);
+        return NextResponse.json(
+          { error: "Не удалось создать профиль" },
+          { status: 500 }
+        );
+      }
+      profile = created;
+    }
+
+    const { error: profileError } = { error: null }; // Для обратной совместимости
 
     if (profileError || !profile) {
       console.error("Error creating profile:", profileError);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface SurveyFormData {
   real_name: string;
@@ -14,8 +15,12 @@ interface SurveyFormData {
 }
 
 export default function SurveyIframePage() {
+  const searchParams = useSearchParams();
+  const uidParam = searchParams.get("uid");
+  const nameParam = searchParams.get("name");
+
   const [formData, setFormData] = useState<SurveyFormData>({
-    real_name: "",
+    real_name: nameParam || "",
     course: "massazh-shvz",
     motivation: [],
     target_clients: "",
@@ -51,7 +56,10 @@ export default function SurveyIframePage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          uid: uidParam, // Передаем uid из GetCourse
+        }),
       });
 
       const data = await response.json();
@@ -138,20 +146,22 @@ export default function SurveyIframePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="real_name" className="block font-semibold text-gray-700 mb-2">
-              Ваше имя: <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="real_name"
-              required
-              value={formData.real_name}
-              onChange={(e) => setFormData({ ...formData, real_name: e.target.value })}
-              placeholder="Например: Мария Иванова"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition text-gray-900 placeholder:text-gray-400"
-            />
-          </div>
+          {!nameParam && (
+            <div>
+              <label htmlFor="real_name" className="block font-semibold text-gray-700 mb-2">
+                Ваше имя: <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="real_name"
+                required
+                value={formData.real_name}
+                onChange={(e) => setFormData({ ...formData, real_name: e.target.value })}
+                placeholder="Например: Мария Иванова"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition text-gray-900 placeholder:text-gray-400"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block font-semibold text-gray-700 mb-2">
