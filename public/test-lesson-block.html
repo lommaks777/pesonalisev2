@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест блока персонализации</title>
+</head>
+<body>
+    <h1>Тест блока персонализации урока</h1>
+    
+    <div id="sell-block"
+         data-lesson="демонстрация"
+         data-title="1 Урок Демонстрация"
+         style="display:none"></div>
+
+    <script>
+    (async function(){
+      const API = "https://pesonalisev2-zxby.vercel.app/api/persona";
+      const UID = "a954c858-888d-4e68-b1cd-5d0b2943d207"; // Тестовый profileId
+      const userId = UID;
+      const mount = document.getElementById('sell-block');
+      const lesson = mount.getAttribute('data-lesson');
+      const title  = mount.getAttribute('data-title');
+
+      console.log("Загрузка блока персонализации...", { userId, lesson, title });
+
+      const r = await fetch(`${API}/block`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ 
+          user_id: userId, 
+          lesson: lesson, 
+          title: title, 
+          flush: false
+        })
+      });
+      
+      const data = await r.json();
+      
+      if (data && data.ok && data.html){
+        // Подключаем стили (только один раз)
+        if (!document.querySelector('link[data-persona-styles]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet'; 
+          link.href = 'https://pesonalisev2-zxby.vercel.app/persona/styles.css';
+          link.setAttribute('data-persona-styles','1'); 
+          document.head.appendChild(link);
+        }
+        
+        // Вставляем HTML блок
+        mount.innerHTML = data.html; 
+        mount.style.display='block';
+        
+        console.log("✅ Persona block loaded:", data);
+      } else {
+        console.warn("❌ Persona block failed:", data);
+        mount.innerHTML = `<div style="padding:20px;background:#fee;border:2px solid #f00;border-radius:8px;">
+          <strong>Ошибка загрузки персонализации</strong><br>
+          ${JSON.stringify(data, null, 2)}
+        </div>`;
+        mount.style.display='block';
+      }
+    })();
+    </script>
+</body>
+</html>
+
