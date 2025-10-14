@@ -112,10 +112,6 @@ export async function POST(request: NextRequest) {
 
     const html = `
       <div class="persona-block">
-        <div class="persona-header">
-          <h2 class="persona-title">🎯 ${title}</h2>
-          <span class="persona-badge">Персонализировано для ${profile.name}</span>
-        </div>
 
         ${introduction ? `
           <div class="persona-section">
