@@ -16,6 +16,7 @@
     "db:update-user": "tsx scripts/update-user-personalizations.ts",
     "db:update-user-api": "tsx scripts/update-user-via-api.ts",
     "db:update-user-simple": "tsx scripts/update-user-simple.ts",
+    "templates:regenerate": "tsx scripts/regenerate-lesson-templates.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
