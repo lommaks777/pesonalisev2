@@ -1,57 +1,86 @@
 import { PersonalizedContent } from "./openai";
 
 /**
- * Generates persona-block HTML from personalized content
+ * Escapes HTML special characters to prevent XSS
+ */
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * Generates persona-block HTML from personalized content (new 7-section format)
  */
 export function formatPersonalizedContent(content: PersonalizedContent | Record<string, unknown>): string {
-  const summaryShort = (content as any).summary_short || "";
-  const prevLessons = (content as any).prev_lessons || "";
-  const whyWatch = (content as any).why_watch || "";
-  const quickAction = (content as any).quick_action || "";
-  const homework20m = (content as any).homework_20m || "";
-  const socialShare = (content as any).social_share || "";
+  const typedContent = content as PersonalizedContent;
+  
+  const introduction = typedContent.introduction || "";
+  const keyPoints = typedContent.key_points || [];
+  const practicalTips = typedContent.practical_tips || [];
+  const importantNotes = typedContent.important_notes;
+  const equipmentPreparation = typedContent.equipment_preparation;
+  const homework = typedContent.homework || "";
+  const motivationalLine = typedContent.motivational_line || "";
 
   return `
     <div class="persona-block">
-      ${summaryShort ? `
-        <div class="persona-section">
-          <h3 class="persona-section-title">📝 О уроке</h3>
-          <p class="persona-text">${summaryShort}</p>
+      ${introduction ? `
+        <div class="persona-section persona-intro">
+          <h3 class="persona-section-title">👋 Введение</h3>
+          <p class="persona-text">${escapeHtml(introduction)}</p>
         </div>
       ` : ''}
 
-      ${prevLessons ? `
+      ${keyPoints.length > 0 ? `
         <div class="persona-section">
-          <h3 class="persona-section-title">📚 Что мы изучили</h3>
-          <p class="persona-text">${prevLessons}</p>
+          <h3 class="persona-section-title">🔑 Ключевые моменты</h3>
+          <ul class="persona-list persona-key-points">
+            ${keyPoints.map(point => `<li class="persona-list-item">${escapeHtml(point)}</li>`).join('')}
+          </ul>
         </div>
       ` : ''}
 
-      ${whyWatch ? `
+      ${practicalTips.length > 0 ? `
         <div class="persona-section">
-          <h3 class="persona-section-title">🎯 Зачем смотреть</h3>
-          <p class="persona-text">${whyWatch}</p>
+          <h3 class="persona-section-title">💡 Практические советы</h3>
+          <ul class="persona-list persona-tips">
+            ${practicalTips.map(tip => `<li class="persona-list-item">${escapeHtml(tip)}</li>`).join('')}
+          </ul>
         </div>
       ` : ''}
 
-      ${quickAction ? `
-        <div class="persona-section">
-          <h3 class="persona-section-title">⚡ Быстрое действие</h3>
-          <p class="persona-text">${quickAction}</p>
+      ${importantNotes && importantNotes.length > 0 ? `
+        <div class="persona-section persona-warning">
+          <h3 class="persona-section-title">⚠️ Важно</h3>
+          <ul class="persona-list">
+            ${importantNotes.map(note => `<li class="persona-list-item">${escapeHtml(note)}</li>`).join('')}
+          </ul>
         </div>
       ` : ''}
 
-      ${homework20m ? `
+      ${equipmentPreparation ? `
+        <div class="persona-section persona-equipment">
+          <h3 class="persona-section-title">🧰 Инвентарь и подготовка</h3>
+          <p class="persona-text">${escapeHtml(equipmentPreparation)}</p>
+        </div>
+      ` : ''}
+
+      ${homework ? `
         <div class="persona-section persona-homework">
-          <h3 class="persona-section-title">📚 Домашнее задание (20 мин)</h3>
-          <p class="persona-text">${homework20m}</p>
+          <h3 class="persona-section-title">📚 Домашнее задание</h3>
+          <p class="persona-text">${escapeHtml(homework)}</p>
         </div>
       ` : ''}
 
-      ${socialShare ? `
-        <div class="persona-section persona-social">
-          <h3 class="persona-section-title">📱 Поделиться</h3>
-          <p class="persona-text">${socialShare}</p>
+      ${motivationalLine ? `
+        <div class="persona-section persona-motivation">
+          <p class="persona-text"><em>${escapeHtml(motivationalLine)}</em></p>
         </div>
       ` : ''}
     </div>

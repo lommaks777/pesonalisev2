@@ -44,7 +44,8 @@
   list-style: none;
 }
 
-.persona-list li {
+.persona-list li,
+.persona-list-item {
   position: relative;
   font-size: 15px;
   line-height: 1.6;
@@ -53,15 +54,50 @@
   color: #374151;
 }
 
-.persona-list li:before {
+.persona-list li:before,
+.persona-list-item:before {
   content: "▸";
   position: absolute;
   left: -16px;
   color: #6b7280;
 }
 
-.persona-list li:last-child {
+.persona-list li:last-child,
+.persona-list-item:last-child {
   margin-bottom: 0;
+}
+
+/* New section-specific styling */
+.persona-intro {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.persona-key-points {
+  padding-left: 24px;
+}
+
+.persona-tips li:before,
+.persona-tips .persona-list-item:before {
+  content: "✔";
+  color: #10b981;
+  font-weight: bold;
+}
+
+.persona-warning {
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+}
+
+.persona-warning li:before,
+.persona-warning .persona-list-item:before {
+  content: "⚠";
+  color: #f59e0b;
+}
+
+.persona-equipment {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
 }
 
 .persona-motivation {

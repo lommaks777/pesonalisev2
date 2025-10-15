@@ -122,7 +122,7 @@ Creates or updates a user profile based on survey responses and generates person
   "success": true,
   "profileId": "uuid",
   "userIdentifier": "string",
-  "message": "Персональный курс успешно создан!"
+  "message": "Personal course successfully created!"
 }
 ```
 
@@ -155,7 +155,7 @@ Creates or updates a personalization for a specific lesson and profile.
 {
   "success": true,
   "data": {},
-  "message": "Персонализация создана"
+  "message": "Personalization created"
 }
 ```
 
@@ -179,7 +179,7 @@ Removes a personalization for a specific lesson and profile.
 ```json
 {
   "success": true,
-  "message": "Персонализация удалена"
+  "message": "Personalization deleted"
 }
 ```
 
@@ -300,7 +300,7 @@ The API follows consistent error handling patterns across all endpoints:
   ```
 - **400 Validation Error**: Specific to survey endpoint
   ```json
-  { "error": "Имя и курс обязательны для заполнения" }
+  { "error": "Name and course are required" }
   ```
 
 **Failure Scenarios**
@@ -368,7 +368,7 @@ async function loadPersonalizedLesson(userId, lessonSlug, lessonTitle) {
 }
 
 // Usage example
-loadPersonalizedLesson('user123', 'демонстрация', '1 Урок Демонстрация');
+loadPersonalizedLesson('user123', 'demonstration', '1 Lesson Demonstration');
 ```
 
 ### GetCourse Integration Template
@@ -376,8 +376,8 @@ The following HTML template can be embedded in GetCourse lesson pages:
 
 ```html
 <div id="persona-lesson-1" 
-     data-lesson="демонстрация" 
-     data-title="1 Урок Демонстрация" 
+     data-lesson="demonstration" 
+     data-title="1 Lesson Demonstration" 
      style="display:none;margin:30px 0;">
 </div>
 

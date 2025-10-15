@@ -19,7 +19,20 @@ const LESSON_ID_MAP: Record<number, string> = {
 
 const TEMPLATE_DIR = path.join(process.cwd(), "store", "shvz");
 
+// New 7-section template structure
 export interface LessonTemplate {
+  introduction?: string; // 2-3 sentences: lesson goal and expected result
+  key_points?: string[]; // 4-6 bullet points, each ≤18 words
+  practical_tips?: string[]; // 3-5 instruction points with imperative verbs
+  important_notes?: string[]; // 2-4 points about contraindications (conditional)
+  equipment_preparation?: string; // Equipment list and setup (conditional)
+  homework?: string; // 1-2 sentences with concrete action
+  motivational_line?: string; // 1 inspirational sentence
+  [key: string]: any;
+}
+
+// Legacy 5-field template structure (for backward compatibility)
+export interface LegacyLessonTemplate {
   summary_short?: string;
   why_watch?: string;
   quick_action?: string;
@@ -45,6 +58,7 @@ export function getLessonTemplateIds(): Record<number, string> {
 
 /**
  * Loads and parses lesson template JSON
+ * Automatically detects and transforms old format to new format
  * Returns default template structure if file not found
  */
 export async function loadLessonTemplate(
@@ -72,8 +86,24 @@ export async function loadLessonTemplate(
         const content = fs.readFileSync(templatePath, "utf8");
         const template = JSON.parse(content);
         
-        // Validate required fields exist
-        if (template && typeof template === "object") {
+        // Validate it's an object
+        if (!template || typeof template !== "object") {
+          console.error(`Invalid template structure in ${filename}`);
+          continue;
+        }
+        
+        // Detect format and transform if needed
+        const format = detectTemplateFormat(template);
+        
+        if (format === 'new') {
+          // Already in new format, return as-is
+          return template as LessonTemplate;
+        } else if (format === 'old') {
+          // Transform old format to new
+          console.log(`Transforming old format template for lesson ${lessonNumber}`);
+          return transformOldToNew(template as LegacyLessonTemplate);
+        } else {
+          console.warn(`Unknown template format for lesson ${lessonNumber}, using as-is`);
           return template;
         }
       } catch (error) {
@@ -92,10 +122,113 @@ export async function loadLessonTemplate(
  */
 function getDefaultTemplate(lessonNumber: number): LessonTemplate {
   return {
-    summary_short: `Урок ${lessonNumber}`,
-    why_watch: "Этот урок поможет вам освоить важные техники массажа",
-    quick_action: "Просмотрите видео урока внимательно",
-    social_share: "Изучаю новые техники массажа!",
-    homework_20m: "Просмотрите видео урока и попрактикуйтесь 10-15 минут",
+    introduction: `Урок ${lessonNumber}: введение в технику массажа`,
+    key_points: [
+      "Узнаете основные техники работы",
+      "Научитесь правильному позиционированию",
+      "Поймёте критерии эффективности",
+      "Освоите безопасные приёмы работы"
+    ],
+    practical_tips: [
+      "Следите за реакцией клиента",
+      "Начинайте с лёгкого давления",
+      "Избегайте болезненных ощущений"
+    ],
+    homework: "Просмотрите видео урока и попрактикуйтесь 10-15 минут",
+    motivational_line: "Каждая практика приближает вас к мастерству"
+  };
+}
+
+/**
+ * Detects whether template uses old (5-field) or new (7-section) format
+ */
+export function detectTemplateFormat(template: any): 'old' | 'new' | 'unknown' {
+  if (!template || typeof template !== 'object') {
+    return 'unknown';
+  }
+  
+  // Check for new format fields
+  if (template.introduction !== undefined || 
+      template.key_points !== undefined || 
+      template.practical_tips !== undefined) {
+    return 'new';
+  }
+  
+  // Check for old format fields
+  if (template.summary_short !== undefined || 
+      template.why_watch !== undefined || 
+      template.homework_20m !== undefined) {
+    return 'old';
+  }
+  
+  return 'unknown';
+}
+
+/**
+ * Transforms old 5-field template to new 7-section structure
+ */
+export function transformOldToNew(oldTemplate: LegacyLessonTemplate): LessonTemplate {
+  const introduction = oldTemplate.summary_short || "";
+  
+  // Try to extract bullet points from why_watch, or create single-item array
+  let keyPoints: string[] = [];
+  if (oldTemplate.why_watch) {
+    // Split by line breaks or bullet markers
+    const lines = oldTemplate.why_watch.split(/[\n\r]+/).filter(line => line.trim());
+    keyPoints = lines.length > 0 ? lines : [oldTemplate.why_watch];
+  }
+  
+  // Convert quick_action to imperative instruction format
+  const practicalTips: string[] = oldTemplate.quick_action 
+    ? [oldTemplate.quick_action]
+    : [];
+  
+  const homework = oldTemplate.homework_20m || "";
+  
+  // Generate generic motivational line
+  const motivationalLine = "Регулярная практика приведёт вас к мастерству";
+  
+  return {
+    introduction,
+    key_points: keyPoints,
+    practical_tips: practicalTips,
+    homework,
+    motivational_line: motivationalLine
+  };
+}
+
+/**
+ * Validates that template has required fields for new format
+ */
+export function validateNewTemplate(template: LessonTemplate): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  if (!template.introduction) {
+    errors.push("Missing required field: introduction");
+  }
+  
+  if (!template.key_points || !Array.isArray(template.key_points) || template.key_points.length === 0) {
+    errors.push("Missing or empty required field: key_points (must be array with 4-6 items)");
+  } else if (template.key_points.length < 4 || template.key_points.length > 6) {
+    errors.push(`key_points should have 4-6 items, got ${template.key_points.length}`);
+  }
+  
+  if (!template.practical_tips || !Array.isArray(template.practical_tips) || template.practical_tips.length === 0) {
+    errors.push("Missing or empty required field: practical_tips (must be array with 3-5 items)");
+  } else if (template.practical_tips.length < 3 || template.practical_tips.length > 5) {
+    errors.push(`practical_tips should have 3-5 items, got ${template.practical_tips.length}`);
+  }
+  
+  if (!template.homework) {
+    errors.push("Missing required field: homework");
+  }
+  
+  if (!template.motivational_line) {
+    errors.push("Missing required field: motivational_line");
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
   };
 }

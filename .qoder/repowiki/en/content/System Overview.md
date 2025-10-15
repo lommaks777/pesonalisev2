@@ -9,6 +9,9 @@
 - [lib/supabase/server.ts](file://lib/supabase/server.ts)
 - [lib/supabase/types.ts](file://lib/supabase/types.ts)
 - [lib/openai.ts](file://lib/openai.ts)
+- [lib/services/openai.ts](file://lib/services/openai.ts) - *Updated in recent commit*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated in recent commit*
+- [lib/utils/http.ts](file://lib/utils/http.ts) - *Updated in recent commit*
 - [components/profiles/profile-survey.tsx](file://components/profiles/profile-survey.tsx)
 - [components/personalizations/personalized-lesson.tsx](file://components/personalizations/personalized-lesson.tsx)
 - [store/user_profiles.json](file://store/user_profiles.json)
@@ -18,18 +21,28 @@
 - [SYSTEM_OVERVIEW.md](file://SYSTEM_OVERVIEW.md)
 </cite>
 
+## Update Summary
+**Changes Made**   
+- Updated **Core Architecture Components** to reflect service-oriented architecture changes
+- Enhanced **API Endpoints and Integration Points** with new HTTP utility patterns
+- Revised **Personalization Engine and JSON Templates** with updated service module details
+- Added **Service Layer Architecture** section to document new service-oriented design
+- Updated **Technical Decisions** to include HTTP utility standardization
+- Added new sources for service and utility modules
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Business Goals and Target Users](#business-goals-and-target-users)
 3. [Core Architecture Components](#core-architecture-components)
-4. [System Flow: From Survey to Personalized Lessons](#system-flow-from-survey-to-personalized-lessons)
-5. [Data Flow Architecture](#data-flow-architecture)
-6. [Frontend Architecture](#frontend-architecture)
-7. [API Endpoints and Integration Points](#api-endpoints-and-integration-points)
-8. [Personalization Engine and JSON Templates](#personalization-engine-and-json-templates)
-9. [External Integrations](#external-integrations)
-10. [Fallback Mechanisms](#fallback-mechanisms)
-11. [Technical Decisions](#technical-decisions)
+4. [Service Layer Architecture](#service-layer-architecture)
+5. [System Flow: From Survey to Personalized Lessons](#system-flow-from-survey-to-personalized-lessons)
+6. [Data Flow Architecture](#data-flow-architecture)
+7. [Frontend Architecture](#frontend-architecture)
+8. [API Endpoints and Integration Points](#api-endpoints-and-integration-points)
+9. [Personalization Engine and JSON Templates](#personalization-engine-and-json-templates)
+10. [External Integrations](#external-integrations)
+11. [Fallback Mechanisms](#fallback-mechanisms)
+12. [Technical Decisions](#technical-decisions)
 
 ## Introduction
 
@@ -77,6 +90,29 @@ The AI processing layer leverages OpenAI's GPT-4o-mini model to generate persona
 - [lib/supabase/types.ts](file://lib/supabase/types.ts#L0-L139)
 - [components/profiles/profile-survey.tsx](file://components/profiles/profile-survey.tsx#L0-L66)
 - [components/personalizations/personalized-lesson.tsx](file://components/personalizations/personalized-lesson.tsx#L0-L26)
+
+## Service Layer Architecture
+
+The system has been refactored to implement a service-oriented architecture with centralized business logic in the `lib/services` directory. This modular approach improves maintainability and reduces code duplication across API endpoints. The key service modules include:
+
+- **openai.ts**: Centralizes AI processing logic with the `personalizeLesson` function that handles prompt creation, OpenAI API calls, and error handling. This service exports a singleton OpenAI client instance to ensure efficient resource usage.
+
+- **lesson-templates.ts**: Manages lesson template operations including loading templates from the file system, handling multiple filename patterns for backward compatibility, and providing fallback templates when files are missing. The module includes a centralized `LESSON_ID_MAP` for consistent lesson ID mapping.
+
+- **html-formatter.ts**: Handles content formatting operations, converting personalized JSON content into HTML blocks with the `formatPersonalizedContent` function, and generating fallback HTML for error conditions.
+
+- **personalization.ts**: Contains the `savePersonalization` function that handles database operations for storing personalized content using Supabase upsert operations.
+
+- **http.ts**: Provides standardized HTTP response patterns with `CORS_HEADERS`, `createCorsResponse`, `createErrorResponse`, and `createOptionsHandler` utilities to ensure consistent API responses across endpoints.
+
+This service layer abstraction allows API routes to focus on request handling and response formatting while delegating business logic to dedicated service modules, promoting code reuse and easier testing.
+
+**Section sources**
+- [lib/services/openai.ts](file://lib/services/openai.ts#L1-L138) - *Updated in recent commit*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L101) - *Updated in recent commit*
+- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts#L1-L90)
+- [lib/services/personalization.ts](file://lib/services/personalization.ts#L1-L47)
+- [lib/utils/http.ts](file://lib/utils/http.ts#L1-L73) - *Updated in recent commit*
 
 ## System Flow: From Survey to Personalized Lessons
 
@@ -159,11 +195,14 @@ The `/api/persona/block` endpoint serves as the primary integration point with e
 
 Additional API endpoints include `/api/lessons` for retrieving lesson lists, `/api/personalizations` for managing personalized content, and profile-specific routes for retrieving user information. These endpoints follow RESTful principles with clear request and response formats, making them easy to understand and integrate. The API layer is protected by appropriate error handling and validation, ensuring robust operation even under unexpected conditions.
 
+All API endpoints utilize standardized HTTP utilities from `lib/utils/http.ts` including `CORS_HEADERS`, `createCorsResponse`, `createErrorResponse`, and `createOptionsHandler` to ensure consistent response patterns and proper CORS handling across the application.
+
 **Section sources**
 - [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
 - [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L0-L293)
 - [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts#L0-L197)
 - [app/api/lessons/route.ts](file://app/api/lessons/route.ts#L0-L20)
+- [lib/utils/http.ts](file://lib/utils/http.ts#L1-L73) - *Updated in recent commit*
 - [PERSONALIZATION_API.md](file://PERSONALIZATION_API.md#L0-L271)
 
 ## Personalization Engine and JSON Templates
@@ -176,9 +215,13 @@ The AI processes this prompt and returns a JSON response with the personalized c
 
 The JSON template structure includes fields such as `summary_short`, `why_watch`, `quick_action`, `social_share`, and `homework_20m`, each designed to address a specific aspect of the learning experience. This structured approach allows the frontend to consistently render personalized content while giving the AI clear guidance on what information to generate for each section. The template-based system also facilitates content updates, as changes to the base templates can be propagated to all users through re-personalization.
 
+The personalization logic is centralized in the `lib/services/openai.ts` module, which exports the `personalizeLesson` function that handles the complete personalization workflow including prompt creation, OpenAI API calls, and error handling with fallback to original template content.
+
 **Section sources**
 - [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
 - [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L0-L293)
+- [lib/services/openai.ts](file://lib/services/openai.ts#L1-L138) - *Updated in recent commit*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L101) - *Updated in recent commit*
 - [store/shvz/lessons](file://store/shvz/lessons)
 - [store/user_profiles.json](file://store/user_profiles.json#L0-L269)
 
@@ -223,7 +266,9 @@ The selection of OpenAI's GPT-4o-mini model for AI processing balances cost, per
 
 The hybrid data storage approach—combining database storage for structured data with file-based storage for lesson templates—demonstrates thoughtful architectural design. This approach leverages the strengths of each storage method: databases for transactional integrity and complex queries, and files for flexible, version-controlled content management. The separation of concerns between dynamic user data and static lesson content enhances system maintainability and scalability.
 
-The API design follows RESTful principles with clear endpoints for specific functions, promoting ease of integration and understandability. The inclusion of CORS headers and proper error handling in all endpoints ensures robust operation in distributed environments. The decision to return HTML blocks from certain endpoints rather than raw data simplifies integration with external systems, reducing the burden on consuming applications to format and style content.
+The API design follows RESTful principles with clear endpoints for specific functions, promoting ease of integration and understandability. The inclusion of standardized HTTP utilities from `lib/utils/http.ts` ensures consistent response patterns, proper CORS handling, and uniform error formatting across all endpoints. The decision to return HTML blocks from certain endpoints rather than raw data simplifies integration with external systems, reducing the burden on consuming applications to format and style content.
+
+The refactoring to a service-oriented architecture with centralized business logic in the `lib/services` directory improves code maintainability and reduces duplication. This modular approach allows for easier testing, better separation of concerns, and more efficient development workflows.
 
 **Section sources**
 - [next.config.ts](file://next.config.ts#L0-L15)
@@ -231,3 +276,6 @@ The API design follows RESTful principles with clear endpoints for specific func
 - [lib/openai.ts](file://lib/openai.ts#L0-L7)
 - [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
 - [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts#L0-L197)
+- [lib/services/openai.ts](file://lib/services/openai.ts#L1-L138) - *Updated in recent commit*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L101) - *Updated in recent commit*
+- [lib/utils/http.ts](file://lib/utils/http.ts#L1-L73) - *Updated in recent commit*

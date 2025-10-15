@@ -2,12 +2,24 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts)
-- [openai.ts](file://lib/openai.ts)
+- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts) - *Refactored in commit 2c997b6*
+- [openai.ts](file://lib/services/openai.ts) - *Updated in commit 2c997b6*
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated in commit 2c997b6*
+- [html-formatter.ts](file://lib/services/html-formatter.ts) - *Updated in commit 2c997b6*
+- [personalization.ts](file://lib/services/personalization.ts) - *Updated in commit 2c997b6*
 - [server.ts](file://lib/supabase/server.ts)
-- [personalizations/route.ts](file://app/api/personalizations/route.ts)
 - [lesson.json](file://store/shvz/lessons/01/lesson.json)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated workflow overview to reflect modularized service architecture
+- Revised template loading strategy to document service-based implementation
+- Enhanced AI prompt engineering section with complete prompt template
+- Updated content formatting logic with current HTML structure
+- Added performance considerations for service layer interactions
+- Improved error handling documentation with service-specific details
+- Updated API integration section with service function references
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -22,20 +34,20 @@
 10. [Customization Guide](#customization-guide)
 
 ## Introduction
-The AI-powered personalization engine is the core component of the persona application, responsible for delivering customized lesson content based on user profiles. This system integrates multiple services including Supabase for data storage, OpenAI's GPT-4o-mini for content generation, and a file-based template system to create personalized learning experiences.
+The AI-powered personalization engine is the core component of the persona application, responsible for delivering customized lesson content based on user profiles. This system integrates multiple services including Supabase for data storage, OpenAI's GPT-4o-mini for content generation, and a file-based template system to create personalized learning experiences. The engine has been recently refactored to use a modular service architecture, extracting core functionality into reusable components in the `lib/services` directory.
 
 **Section sources**
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L45)
 
 ## Workflow Overview
-The personalization engine follows a six-step process to generate customized content:
+The personalization engine follows a six-step process to generate customized content, now implemented through modular services:
 
 1. **Receive personalization request**: Accepts user ID and lesson number via API
-2. **Load base JSON template**: Retrieves lesson template from file system
+2. **Load base JSON template**: Retrieves lesson template from file system using `loadLessonTemplate` service
 3. **Retrieve user profile**: Fetches user data from Supabase database
-4. **Send context to AI model**: Combines template and profile data for GPT-4o-mini processing
-5. **Process AI response**: Parses and validates generated JSON content
-6. **Generate HTML output**: Formats personalized content for frontend display
+4. **Send context to AI model**: Uses `personalizeLesson` service to combine template and profile data for GPT-4o-mini processing
+5. **Process AI response**: Parses and validates generated JSON content with fallback mechanisms
+6. **Generate HTML output**: Formats personalized content using `formatPersonalizedContent` service
 
 ```mermaid
 sequenceDiagram
@@ -44,19 +56,27 @@ participant API as "Personalize API"
 participant Supabase as "Supabase Database"
 participant FileSystem as "Template Files"
 participant OpenAI as "GPT-4o-mini Model"
+participant Services as "Service Layer"
 Client->>API : POST /api/persona/personalize-template
 API->>Supabase : Get user profile by user_id
 Supabase-->>API : Profile data with survey
 API->>Supabase : Get lesson by lesson_number
 Supabase-->>API : Lesson metadata
-API->>FileSystem : Load template using lesson ID
-FileSystem-->>API : JSON template
-API->>OpenAI : Send prompt with template and profile
-OpenAI-->>API : Personalized JSON response
-API->>Supabase : Save personalization to database
-Supabase-->>API : Confirmation
-API->>API : Format HTML from JSON
-API-->>Client : Return HTML and cached flag
+API->>Services : loadLessonTemplate(lesson_number)
+Services->>FileSystem : Search template files
+FileSystem-->>Services : JSON template
+Services-->>API : Template object
+API->>Services : personalizeLesson(template, survey, name, lessonInfo)
+Services->>OpenAI : Send prompt with context
+OpenAI-->>Services : Personalized JSON response
+Services-->>API : Processed content
+API->>Services : savePersonalization(profileId, lessonId, content)
+Services->>Supabase : Upsert to database
+Supabase-->>Services : Confirmation
+Services-->>API : Success
+API->>Services : formatPersonalizedContent(content)
+Services-->>API : HTML string
+API->>Client : Return HTML and cached flag
 ```
 
 **Diagram sources**
@@ -67,14 +87,14 @@ API-->>Client : Return HTML and cached flag
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L45-L128)
 
 ## Template Loading Strategy
-The engine implements a robust template loading mechanism with lesson ID mapping and fallback capabilities. Templates are stored in the `store/shvz` directory with a naming convention that supports multiple formats.
+The engine implements a robust template loading mechanism with lesson ID mapping and fallback capabilities through the `loadLessonTemplate` service. Templates are stored in the `store/shvz` directory with a naming convention that supports multiple formats.
 
 The system uses a lesson number to ID mapping function to locate the correct template file. Three candidate filename patterns are checked in order:
 1. `{lesson_number}-{lesson_number}-{id}-final.json`
 2. `{lesson_number}-{id}-final.json` 
 3. `{id}-final.json`
 
-This hierarchical approach ensures backward compatibility while supporting the current naming convention. The lesson ID mapping is maintained in a lookup table within the `getLessonId` function.
+This hierarchical approach ensures backward compatibility while supporting the current naming convention. The lesson ID mapping is maintained in a lookup table within the `getLessonTemplateId` function. If no template file is found, the system returns a default template structure to ensure graceful degradation.
 
 ```mermaid
 flowchart TD
@@ -90,18 +110,18 @@ FileExists2 --> |Yes| ReturnPath
 FileExists2 --> |No| CheckFile3["Check third candidate path"]
 CheckFile3 --> FileExists3{File exists?}
 FileExists3 --> |Yes| ReturnPath
-FileExists3 --> |No| ReturnError["Return template not found error"]
+FileExists3 --> |No| ReturnDefault["Return default template"]
 ReturnPath --> LoadTemplate["Load and parse JSON template"]
 LoadTemplate --> End([Template loaded successfully])
-ReturnError --> End
+ReturnDefault --> End
 ```
 
 **Diagram sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L84-L104)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L49-L87)
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L84-L104)
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L151-L167)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L49-L87)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L92-L100)
 
 ## AI Prompt Engineering
 The personalization engine employs a structured prompt engineering approach to ensure consistent and relevant AI-generated content. The prompt template is designed to guide GPT-4o-mini in creating personalized lesson content based on user profile data.
@@ -142,13 +162,13 @@ end
 ```
 
 **Diagram sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L172-L230)
+- [openai.ts](file://lib/services/openai.ts#L45-L82)
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L172-L230)
+- [openai.ts](file://lib/services/openai.ts#L45-L82)
 
 ## Content Formatting Logic
-The engine transforms AI-generated JSON content into structured HTML for frontend display. The formatting function checks for the presence of each content field and conditionally includes corresponding HTML sections.
+The engine transforms AI-generated JSON content into structured HTML for frontend display using the `formatPersonalizedContent` service. The formatting function checks for the presence of each content field and conditionally includes corresponding HTML sections.
 
 The generated HTML includes:
 - **Summary section**: Brief lesson overview
@@ -158,27 +178,28 @@ The generated HTML includes:
 - **Homework**: 20-minute assignment adapted to practice model
 - **Social sharing**: Content for social media sharing
 
-Each section is wrapped in appropriate CSS classes for styling, with conditional rendering ensuring only available content is displayed. The output is wrapped in a "persona-block" container for consistent presentation.
+Each section is wrapped in appropriate CSS classes for styling, with conditional rendering ensuring only available content is displayed. The output is wrapped in a "persona-block" container for consistent presentation. The service uses template literals with conditional expressions to generate the final HTML structure.
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L235-L281)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L5-L58)
 
 ## Performance Considerations
 The personalization engine incorporates several performance optimization strategies:
 
+### Service Layer Efficiency
+The modular service architecture improves performance by:
+- Encapsulating reusable logic in dedicated services
+- Reducing code duplication across endpoints
+- Enabling easier optimization of individual components
+
 ### Caching Mechanism
 The system implements response caching through the `flush` parameter. When `flush` is false (default), the `cached: true` flag is returned in the response, indicating that cached content was served. This reduces unnecessary AI processing for repeat requests.
-
-### Rate Limiting
-While not explicitly implemented in the code, the architecture supports rate limiting through:
-- Supabase query optimization
-- File system caching of templates
-- Conditional AI processing
 
 ### Processing Optimization
 - Template files are loaded directly from the file system rather than through database queries
 - User profile and lesson data are retrieved in single database queries
 - AI processing only occurs when both user profile and template are available
+- Service functions include error handling to prevent cascading failures
 
 **Section sources**
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L126-L128)
@@ -193,10 +214,10 @@ When a user profile is not found, the system returns a fallback HTML message pro
 If the requested lesson number doesn't exist in the database, an error message is returned indicating the lesson was not found.
 
 ### Template Not Found
-When no template file matches the lesson ID candidates, an error message is returned indicating the template is missing.
+When no template file matches the lesson ID candidates, the system returns a default template structure rather than failing completely.
 
 ### AI Processing Failure
-If the OpenAI API call fails, the system gracefully falls back to returning the original template content rather than failing completely.
+If the OpenAI API call fails, the system gracefully falls back to returning the original template content with default values, ensuring that users always receive some content.
 
 ```mermaid
 flowchart TD
@@ -205,9 +226,9 @@ B --> |No| C[Return survey prompt]
 B --> |Yes| D{Lesson Found?}
 D --> |No| E[Return lesson not found]
 D --> |Yes| F{Template Found?}
-F --> |No| G[Return template not found]
+F --> |No| G[Return default template]
 F --> |Yes| H{AI Processing Success?}
-H --> |No| I[Return original template]
+H --> |No| I[Return original template with defaults]
 H --> |Yes| J[Return personalized content]
 ```
 
@@ -245,10 +266,11 @@ Response:
 - **Supabase**: Used for user profile and lesson data storage/retrieval
 - **OpenAI**: GPT-4o-mini model for content personalization
 - **File System**: Template storage and retrieval
+- **Service Layer**: Modular components for template loading, personalization, formatting, and database operations
 
 **Section sources**
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L45)
-- [personalizations/route.ts](file://app/api/personalizations/route.ts#L1-L134)
+- [personalization.ts](file://lib/services/personalization.ts#L20-L47)
 
 ## Examples and Usage
 ### Input Template Example
@@ -283,11 +305,11 @@ The AI generates a JSON response that is formatted into HTML containing personal
 
 **Section sources**
 - [lesson.json](file://store/shvz/lessons/01/lesson.json#L1-L8)
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L172-L230)
+- [openai.ts](file://lib/services/openai.ts#L88-L137)
 
 ## Customization Guide
 ### Modifying AI Prompts
-To modify the AI prompts for different content styles, edit the prompt string in the `personalizeTemplate` function. Key areas for customization:
+To modify the AI prompts for different content styles, edit the `createPersonalizationPrompt` function in `openai.ts`. Key areas for customization:
 
 1. **Role specification**: Change the instructor persona
 2. **Personalization requirements**: Modify the five adaptation criteria
@@ -306,5 +328,5 @@ To support additional content fields:
 - Implement additional caching layers as needed
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L172-L230)
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L235-L281)
+- [openai.ts](file://lib/services/openai.ts#L45-L82)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L5-L58)

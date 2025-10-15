@@ -2,10 +2,10 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [run-migrations.ts](file://scripts/run-migrations.ts)
+- [run-migrations.ts](file://scripts/run-migrations.ts) - *Updated in recent commit*
 - [import-lessons.ts](file://scripts/import-lessons.ts)
-- [regenerate-lesson-templates.ts](file://scripts/regenerate-lesson-templates.ts)
-- [update-user-personalizations.ts](file://scripts/update-user-personalizations.ts)
+- [regenerate-lesson-templates.ts](file://scripts/regenerate-lesson-templates.ts) - *Refactored to use centralized services*
+- [update-user-personalizations.ts](file://scripts/update-user-personalizations.ts) - *Updated to use centralized services*
 - [update-lesson-numbers.ts](file://scripts/update-lesson-numbers.ts)
 - [update-lesson-numbers-safe.ts](file://scripts/update-lesson-numbers-safe.ts)
 - [update-lesson-numbers-api.ts](file://scripts/update-lesson-numbers-api.ts)
@@ -13,7 +13,18 @@
 - [update-user-simple.ts](file://scripts/update-user-simple.ts)
 - [update-user-via-api.ts](file://scripts/update-user-via-api.ts)
 - [001_init.sql](file://migrations/001_init.sql)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Added as centralized service*
+- [openai.ts](file://lib/services/openai.ts) - *Added as centralized service*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated **Template Regeneration** section to reflect refactored code structure using centralized services
+- Updated **User Personalization Update Scripts** section to reflect modularized personalization logic
+- Added new **Centralized Services** section to document shared functionality
+- Enhanced source tracking with new file references and update annotations
+- Removed outdated information about direct OpenAI usage in scripts
+- Updated code examples to reflect current implementation
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -21,11 +32,12 @@
 3. [Lesson Data Import](#lesson-data-import)
 4. [Template Regeneration](#template-regeneration)
 5. [User Personalization Update Scripts](#user-personalization-update-scripts)
-6. [Lesson Number Update Scripts](#lesson-number-update-scripts)
-7. [Execution Workflow and Dependencies](#execution-workflow-and-dependencies)
-8. [Error Handling and Recovery](#error-handling-and-recovery)
-9. [Idempotency and Data Safety](#idempotency-and-data-safety)
-10. [Command-Line Usage Examples](#command-line-usage-examples)
+6. [Centralized Services](#centralized-services)
+7. [Lesson Number Update Scripts](#lesson-number-update-scripts)
+8. [Execution Workflow and Dependencies](#execution-workflow-and-dependencies)
+9. [Error Handling and Recovery](#error-handling-and-recovery)
+10. [Idempotency and Data Safety](#idempotency-and-data-safety)
+11. [Command-Line Usage Examples](#command-line-usage-examples)
 
 ## Introduction
 This document provides comprehensive documentation for the data management and maintenance scripts in the persona application. These scripts are essential for initializing, updating, and maintaining the application's data layer, including database schema, lesson content, user personalizations, and metadata. The scripts are located in the `scripts/` directory and are designed to be executed in specific sequences during system setup, updates, or maintenance operations.
@@ -90,10 +102,6 @@ PROFILES ||--o{ PERSONALIZED_LESSON_DESCRIPTIONS : generates
 LESSONS ||--o{ PERSONALIZED_LESSON_DESCRIPTIONS : personalizes
 ```
 
-**Diagram sources**
-- [run-migrations.ts](file://scripts/run-migrations.ts#L1-L49)
-- [001_init.sql](file://migrations/001_init.sql#L1-L89)
-
 **Section sources**
 - [run-migrations.ts](file://scripts/run-migrations.ts#L1-L49)
 - [001_init.sql](file://migrations/001_init.sql#L1-L89)
@@ -117,8 +125,12 @@ The script follows a four-step process for each lesson: retrieving lesson metada
 
 To prevent data loss, the script creates backup copies of existing template files before overwriting them. It processes lessons sequentially with a one-second delay between requests to avoid rate limiting. The script uses a predefined mapping between lesson numbers and stable UUIDs to ensure consistent file naming across executions.
 
+**Updated** The script now uses centralized services from `lib/services/` for lesson template ID management and OpenAI operations, improving code maintainability and consistency.
+
 **Section sources**
 - [regenerate-lesson-templates.ts](file://scripts/regenerate-lesson-templates.ts#L1-L311)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L102) - *Centralized template service*
+- [openai.ts](file://lib/services/openai.ts#L1-L139) - *Centralized OpenAI service*
 
 ## User Personalization Update Scripts
 
@@ -129,6 +141,8 @@ The `update-user-personalizations.ts` script generates personalized lesson descr
 The `update-user-simple.ts` script provides a simpler alternative that creates basic personalizations without AI processing. It uses template strings with user data to generate personalized content fields. This script is useful when AI services are unavailable or when simpler personalizations are sufficient.
 
 The `update-user-via-api.ts` script delegates personalization generation to an external API endpoint. It makes HTTP POST requests to a Vercel-hosted API that handles the personalization logic. This approach centralizes personalization logic and allows for more complex processing without requiring OpenAI credentials on the client side.
+
+**Updated** The personalization scripts now use centralized services from `lib/services/` for template loading and AI personalization, ensuring consistent behavior across different scripts and improving maintainability.
 
 ```mermaid
 sequenceDiagram
@@ -143,8 +157,8 @@ Supabase-->>Script : Return lesson list
 Script->>Supabase : Delete existing personalizations
 Supabase-->>Script : Confirmation
 loop For each lesson
-Script->>Script : Load lesson template from store/
-Script->>OpenAI : Generate personalization with GPT-4 Mini
+Script->>Script : Load lesson template from store/ using lesson-templates.ts
+Script->>OpenAI : Generate personalization with GPT-4 Mini via openai.ts
 OpenAI-->>Script : Return personalized JSON
 Script->>Supabase : Insert personalized description
 Supabase-->>Script : Confirmation
@@ -156,11 +170,29 @@ Script->>User : Report completion status
 - [update-user-personalizations.ts](file://scripts/update-user-personalizations.ts#L1-L236)
 - [update-user-simple.ts](file://scripts/update-user-simple.ts#L1-L141)
 - [update-user-via-api.ts](file://scripts/update-user-via-api.ts#L1-L114)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L102)
+- [openai.ts](file://lib/services/openai.ts#L1-L139)
 
 **Section sources**
 - [update-user-personalizations.ts](file://scripts/update-user-personalizations.ts#L1-L236)
 - [update-user-simple.ts](file://scripts/update-user-simple.ts#L1-L141)
 - [update-user-via-api.ts](file://scripts/update-user-via-api.ts#L1-L114)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L102)
+- [openai.ts](file://lib/services/openai.ts#L1-L139)
+
+## Centralized Services
+
+The application now uses centralized services in the `lib/services/` directory to improve code maintainability and ensure consistent behavior across different scripts.
+
+The `lesson-templates.ts` service provides a single source of truth for lesson ID mappings and template loading functionality. It exports functions to retrieve lesson template IDs and load lesson templates from the file system, handling multiple filename patterns and providing fallback templates when files are not found.
+
+The `openai.ts` service implements a singleton pattern for the OpenAI client, ensuring efficient resource usage. It provides a centralized `personalizeLesson` function that handles the core personalization logic with proper error handling and fallback mechanisms. The service uses the `gpt-4o-mini` model for personalization and includes comprehensive error handling to ensure robust operation.
+
+These centralized services are used by multiple scripts including `regenerate-lesson-templates.ts` and `update-user-personalizations.ts`, reducing code duplication and improving maintainability.
+
+**Section sources**
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L102)
+- [openai.ts](file://lib/services/openai.ts#L1-L139)
 
 ## Lesson Number Update Scripts
 
