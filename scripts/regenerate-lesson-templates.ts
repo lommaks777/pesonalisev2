@@ -158,13 +158,22 @@ ${transcript}
       return null;
     }
 
+    // Очищаем ответ от markdown блоков
+    let cleanResponse = response.trim();
+    if (cleanResponse.startsWith('```json')) {
+      cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    }
+    if (cleanResponse.startsWith('```')) {
+      cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
     // Парсим JSON ответ
     try {
-      const template = JSON.parse(response);
+      const template = JSON.parse(cleanResponse);
       return template;
     } catch (parseError) {
       console.error(`❌ Ошибка парсинга JSON для урока ${lessonInfo.number}:`, parseError);
-      console.log('Ответ от OpenAI:', response);
+      console.log('Очищенный ответ от OpenAI:', cleanResponse);
       return null;
     }
 
