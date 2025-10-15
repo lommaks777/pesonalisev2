@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import "dotenv/config";
+import { createClient } from '@supabase/supabase-js';
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
@@ -8,192 +8,122 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-interface SurveyData {
-  real_name: string;
-  course: string;
-  motivation: string[];
-  target_clients: string;
-  skills_wanted: string;
-  fears: string[];
-  wow_result: string;
-  practice_model: string;
-  uid?: string; // UID из GetCourse
+// Конфигурация Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl) {
+  console.error('❌ NEXT_PUBLIC_SUPABASE_URL не задан');
+  process.exit(1);
 }
 
-/**
- * POST /api/survey
- * Обрабатывает анкету пользователя:
- * 1. Создает профиль в Supabase
- * 2. Генерирует персонализированные описания для всех уроков с помощью OpenAI
- * 3. Сохраняет персонализации в БД
- */
-export async function POST(request: NextRequest) {
+const supabaseKey = supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseKey) {
+  console.error('❌ SUPABASE_SERVICE_ROLE_KEY или NEXT_PUBLIC_SUPABASE_ANON_KEY не задан');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function updateUserPersonalizations(userId: string) {
+  console.log(`🔄 Обновляем персонализации для пользователя ${userId}...`);
+
   try {
-    const surveyData: SurveyData = await request.json();
-
-    // Валидация
-    if (!surveyData.real_name || !surveyData.course) {
-      return NextResponse.json(
-        { error: "Имя и курс обязательны для заполнения" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createSupabaseServerClient();
-
-    // 1. Создаем профиль пользователя
-    // Используем uid из GetCourse или генерируем для гостей
-    const userIdentifier = surveyData.uid || `guest_${Date.now()}`;
-    
-    // Проверяем, существует ли уже профиль с таким uid
-    const { data: existingProfile } = await supabase
+    // 1. Получаем профиль пользователя
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id")
-      .eq("user_identifier", userIdentifier)
-      .maybeSingle();
-
-    let profile;
-    
-    if (existingProfile) {
-      // Обновляем существующий профиль
-      const { data: updated, error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          name: surveyData.real_name,
-          course_slug: surveyData.course,
-          survey: surveyData as unknown as Record<string, unknown>,
-        })
-        .eq("id", existingProfile.id)
-        .select()
-        .single();
-      
-      if (updateError) {
-        console.error("Error updating profile:", updateError);
-        return NextResponse.json(
-          { error: "Не удалось обновить профиль" },
-          { status: 500 }
-        );
-      }
-      profile = updated;
-    } else {
-      // Создаем новый профиль
-      const { data: created, error: createError } = await supabase
-        .from("profiles")
-        .insert({
-          user_identifier: userIdentifier,
-          name: surveyData.real_name,
-          course_slug: surveyData.course,
-          survey: surveyData as unknown as Record<string, unknown>,
-        })
-        .select()
-        .single();
-      
-      if (createError) {
-        console.error("Error creating profile:", createError);
-        return NextResponse.json(
-          { error: "Не удалось создать профиль" },
-          { status: 500 }
-        );
-      }
-      profile = created;
-    }
-
-    const { error: profileError } = { error: null }; // Для обратной совместимости
+      .select("id, name, survey")
+      .eq("user_identifier", userId)
+      .single();
 
     if (profileError || !profile) {
-      console.error("Error creating profile:", profileError);
-      return NextResponse.json(
-        { error: "Не удалось создать профиль" },
-        { status: 500 }
-      );
+      console.error(`❌ Пользователь ${userId} не найден:`, profileError?.message);
+      return;
     }
 
-    // 2. Получаем все уроки курса
+    console.log(`✅ Найден профиль: ${profile.name}`);
+
+    // 2. Получаем все уроки
     const { data: lessons, error: lessonsError } = await supabase
       .from("lessons")
-      .select("id, lesson_number, title, summary")
-      .eq("course_id", await getCourseId(supabase, surveyData.course))
-      .order("lesson_number");
+      .select("id, lesson_number, title")
+      .order("lesson_number", { ascending: true });
 
-    if (lessonsError || !lessons || lessons.length === 0) {
-      console.error("Error fetching lessons:", lessonsError);
-      return NextResponse.json(
-        { 
-          profileId: profile.id,
-          warning: "Профиль создан, но уроки не найдены" 
-        },
-        { status: 200 }
-      );
+    if (lessonsError || !lessons) {
+      console.error("❌ Ошибка при получении уроков:", lessonsError?.message);
+      return;
     }
 
-    // 3. Генерируем персонализации для каждого урока на основе готовых шаблонов
-    const personalizationPromises = lessons.map(async (lesson, index) => {
+    console.log(`📚 Найдено ${lessons.length} уроков`);
+
+    // 3. Удаляем старые персонализации
+    const { error: deleteError } = await supabase
+      .from("personalized_lesson_descriptions")
+      .delete()
+      .eq("profile_id", profile.id);
+
+    if (deleteError) {
+      console.error("❌ Ошибка при удалении старых персонализаций:", deleteError.message);
+    } else {
+      console.log("🗑️ Старые персонализации удалены");
+    }
+
+    // 4. Генерируем новые персонализации
+    const results = [];
+    for (const lesson of lessons) {
+      console.log(`🔄 Генерируем персонализацию для урока ${lesson.lesson_number}...`);
+      
       try {
         const personalization = await generateTemplatePersonalization(
-          surveyData,
+          profile.survey,
           lesson,
           profile.name
         );
 
         // Сохраняем персонализацию
-        const { error } = await supabase
+        const { error: saveError } = await supabase
           .from("personalized_lesson_descriptions")
-          .upsert({
+          .insert({
             profile_id: profile.id,
             lesson_id: lesson.id,
             content: personalization,
           });
 
-        if (error) {
-          console.error(`Error saving personalization for lesson ${lesson.id}:`, error);
+        if (saveError) {
+          console.error(`❌ Ошибка при сохранении урока ${lesson.lesson_number}:`, saveError.message);
+          results.push({ lessonNumber: lesson.lesson_number, success: false });
+        } else {
+          console.log(`✅ Урок ${lesson.lesson_number} обновлен`);
+          results.push({ lessonNumber: lesson.lesson_number, success: true });
         }
-
-        return { lessonId: lesson.id, success: !error };
       } catch (error) {
-        console.error(`Error generating personalization for lesson ${lesson.id}:`, error);
-        return { lessonId: lesson.id, success: false };
+        console.error(`❌ Ошибка при генерации урока ${lesson.lesson_number}:`, error);
+        results.push({ lessonNumber: lesson.lesson_number, success: false });
       }
-    });
+    }
 
-    const results = await Promise.all(personalizationPromises);
     const successCount = results.filter(r => r.success).length;
-    console.log(`Generated ${successCount}/${lessons.length} personalizations for user ${userIdentifier}`);
+    console.log(`\n🎉 Обновление завершено! Успешно: ${successCount}/${lessons.length}`);
 
-    return NextResponse.json({
-      success: true,
-      profileId: profile.id,
-      userIdentifier: userIdentifier,
-      message: "Персональный курс успешно создан!",
-    });
+    if (successCount < lessons.length) {
+      console.log("❌ Неудачные уроки:");
+      results.filter(r => !r.success).forEach(r => {
+        console.log(`  - Урок ${r.lessonNumber}`);
+      });
+    }
 
   } catch (error) {
-    console.error("Error in POST /api/survey:", error);
-    return NextResponse.json(
-      { error: "Внутренняя ошибка сервера" },
-      { status: 500 }
-    );
+    console.error("❌ Критическая ошибка:", error);
   }
-}
-
-/**
- * Получает ID курса по slug
- */
-async function getCourseId(supabase: ReturnType<typeof createSupabaseServerClient>, courseSlug: string): Promise<string> {
-  const { data } = await supabase
-    .from("courses")
-    .select("id")
-    .eq("slug", courseSlug)
-    .single();
-
-  return data?.id || "";
 }
 
 /**
  * Генерирует персонализированное описание урока на основе готового шаблона
  */
 async function generateTemplatePersonalization(
-  surveyData: SurveyData,
-  lesson: { lesson_number: number; title: string; summary: string | null },
+  surveyData: any,
+  lesson: { lesson_number: number; title: string },
   userName: string
 ): Promise<Record<string, unknown>> {
   // Загружаем шаблон урока
@@ -205,7 +135,7 @@ async function generateTemplatePersonalization(
     try {
       template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
     } catch (error) {
-      console.error(`Error loading template for lesson ${lesson.lesson_number}:`, error);
+      console.error(`Ошибка загрузки шаблона для урока ${lesson.lesson_number}:`, error);
     }
   }
 
@@ -303,3 +233,6 @@ function getLessonId(lessonNumber: number): string {
   return lessonIds[lessonNumber] || "";
 }
 
+// Запускаем обновление
+const userId = process.argv[2] || "21179358";
+updateUserPersonalizations(userId).catch(console.error);

@@ -59,13 +59,28 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Получаем урок по slug (ищем в title или другом поле)
-    // Для простоты будем искать по частичному совпадению названия
-    const { data: lessonData } = await supabase
+    // Улучшенный поиск: сначала пробуем точное совпадение, затем частичное
+    let { data: lessonData } = await supabase
       .from("lessons")
       .select("id, title, lesson_number")
       .ilike("title", `%${lesson}%`)
       .limit(1)
       .maybeSingle();
+
+    // Если не нашли по частичному совпадению, пробуем поиск по номеру урока
+    if (!lessonData && /^\d+$/.test(lesson)) {
+      const lessonNumber = parseInt(lesson);
+      const { data: lessonByNumber } = await supabase
+        .from("lessons")
+        .select("id, title, lesson_number")
+        .eq("lesson_number", lessonNumber)
+        .limit(1)
+        .maybeSingle();
+      
+      if (lessonByNumber) {
+        lessonData = lessonByNumber;
+      }
+    }
 
     if (!lessonData) {
       return NextResponse.json({
@@ -94,8 +109,11 @@ export async function POST(request: NextRequest) {
         html: `
           <div class="persona-block">
             <div class="persona-alert">
-              <h3>📝 Персонализация в процессе</h3>
-              <p>Для этого урока еще не создано персональное описание. Пожалуйста, заполните анкету заново или обратитесь к администратору.</p>
+              <h3>📝 Персонализация недоступна</h3>
+              <p>Для этого урока еще не создано персональное описание. Пожалуйста, заполните анкету, чтобы получить персонализированные рекомендации.</p>
+              <a href="/survey/iframe?uid=${user_id}" class="persona-btn" target="_blank">
+                Заполнить анкету →
+              </a>
             </div>
           </div>
         `,
@@ -104,50 +122,54 @@ export async function POST(request: NextRequest) {
 
     // 4. Формируем HTML из персонализации
     const content = personalization.content as Record<string, unknown>;
-    const introduction = content.introduction as string || "";
-    const keyPoints = (content.key_points as string[]) || [];
-    const practicalTips = (content.practical_tips as string[]) || [];
-    const motivation = content.motivation as string || "";
-    const homework = content.homework as string || "";
+    const summaryShort = content.summary_short as string || "";
+    const prevLessons = content.prev_lessons as string || "";
+    const whyWatch = content.why_watch as string || "";
+    const quickAction = content.quick_action as string || "";
+    const socialShare = content.social_share as string || "";
+    const homework20m = content.homework_20m as string || "";
 
     const html = `
       <div class="persona-block">
-
-        ${introduction ? `
+        ${summaryShort ? `
           <div class="persona-section">
-            <h3 class="persona-section-title">👋 Введение</h3>
-            <p class="persona-text">${introduction}</p>
+            <h3 class="persona-section-title">📝 О уроке</h3>
+            <p class="persona-text">${summaryShort}</p>
           </div>
         ` : ''}
 
-        ${keyPoints.length > 0 ? `
+        ${prevLessons ? `
           <div class="persona-section">
-            <h3 class="persona-section-title">🔑 Ключевые моменты</h3>
-            <ul class="persona-list">
-              ${keyPoints.map(point => `<li>${point}</li>`).join('')}
-            </ul>
+            <h3 class="persona-section-title">📚 Что мы изучили</h3>
+            <p class="persona-text">${prevLessons}</p>
           </div>
         ` : ''}
 
-        ${practicalTips.length > 0 ? `
+        ${whyWatch ? `
           <div class="persona-section">
-            <h3 class="persona-section-title">💡 Практические советы</h3>
-            <ul class="persona-list">
-              ${practicalTips.map(tip => `<li>${tip}</li>`).join('')}
-            </ul>
+            <h3 class="persona-section-title">🎯 Зачем смотреть</h3>
+            <p class="persona-text">${whyWatch}</p>
           </div>
         ` : ''}
 
-        ${motivation ? `
-          <div class="persona-section persona-motivation">
-            <p class="persona-text">${motivation}</p>
+        ${quickAction ? `
+          <div class="persona-section">
+            <h3 class="persona-section-title">⚡ Быстрое действие</h3>
+            <p class="persona-text">${quickAction}</p>
           </div>
         ` : ''}
 
-        ${homework ? `
+        ${homework20m ? `
           <div class="persona-section persona-homework">
-            <h3 class="persona-section-title">📚 Домашнее задание</h3>
-            <p class="persona-text">${homework}</p>
+            <h3 class="persona-section-title">📚 Домашнее задание (20 мин)</h3>
+            <p class="persona-text">${homework20m}</p>
+          </div>
+        ` : ''}
+
+        ${socialShare ? `
+          <div class="persona-section persona-social">
+            <h3 class="persona-section-title">📱 Поделиться</h3>
+            <p class="persona-text">${socialShare}</p>
           </div>
         ` : ''}
       </div>
