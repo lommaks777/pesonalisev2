@@ -8,3 +8,4 @@ export default function SurveyIframeLayout({
   return <Suspense fallback={<div>Загрузка...</div>}>{children}</Suspense>;
 }
 
+

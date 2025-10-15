@@ -94,3 +94,4 @@
 (async function(){const API="https://pesonalisev2-zxby.vercel.app/api/persona";const UID="{uid}";const userId=(/^\d{3,}$/.test(String(UID)))?String(UID):"guest";const mount=document.getElementById('persona-lesson-12');const lesson=mount.getAttribute('data-lesson');const title=mount.getAttribute('data-title');try{const r=await fetch(`${API}/block`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,lesson:lesson,title:title,flush:false})});const data=await r.json();if(data&&data.ok&&data.html){if(!document.querySelector('link[data-persona-styles]')){const link=document.createElement('link');link.rel='stylesheet';link.href='https://pesonalisev2-zxby.vercel.app/persona/styles.css';link.setAttribute('data-persona-styles','1');document.head.appendChild(link);}mount.innerHTML=data.html;mount.style.display='block';}}catch(e){console.error('Persona:',e);}})();
 </script>
 
+

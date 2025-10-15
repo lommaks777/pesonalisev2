@@ -8,8 +8,9 @@ export default function DashboardLayout({
       <header className="border-b bg-card">
         <div className="container flex h-14 items-center justify-between">
           <span className="font-semibold">Persona</span>
-          <nav className="text-sm text-muted-foreground">
-            Персональные уроки
+          <nav className="text-sm text-muted-foreground flex items-center gap-4">
+            <a href="/dashboard" className="hover:underline">Персональные уроки</a>
+            <a href="/dashboard/templates" className="hover:underline">Шаблоны (рыбы)</a>
           </nav>
         </div>
       </header>
@@ -17,4 +18,5 @@ export default function DashboardLayout({
     </div>
   );
 }
+
 

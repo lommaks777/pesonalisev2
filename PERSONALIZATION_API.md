@@ -268,3 +268,4 @@ import { PersonalizationEditor } from '@/components/personalizations/personaliza
 
 **Уникальный индекс**: `(profile_id, lesson_id)` - один профиль может иметь только одну персонализацию на урок.
 
+
