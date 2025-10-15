@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { CORS_HEADERS, createOptionsHandler } from "@/lib/utils/http";
+import { formatPersonalizedContent, formatSurveyAlert, formatNotFoundAlert, formatPersonalizationUnavailableAlert } from "@/lib/services/html-formatter";
+import { getPersonalization } from "@/lib/services/personalization";
 
 interface BlockRequest {
   user_id: string;
@@ -13,13 +16,6 @@ interface BlockRequest {
  * Генерирует HTML блок с персонализированным описанием урока
  */
 export async function POST(request: NextRequest) {
-  // Добавляем CORS заголовки
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-
   try {
     const body: BlockRequest = await request.json();
     const { user_id, lesson, title, flush } = body;
@@ -27,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (!user_id || !lesson) {
       return NextResponse.json(
         { ok: false, error: "user_id and lesson are required" },
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: CORS_HEADERS }
       );
     }
 
@@ -44,18 +40,8 @@ export async function POST(request: NextRequest) {
       // Пользователь не заполнил анкету - возвращаем базовое описание
       return NextResponse.json({
         ok: true,
-        html: `
-          <div class="persona-block">
-            <div class="persona-alert">
-              <h3>💡 Персонализация недоступна</h3>
-              <p>Заполните анкету, чтобы получить персональные рекомендации для этого урока.</p>
-              <a href="/survey/iframe?uid=${user_id}" class="persona-btn" target="_blank">
-                Заполнить анкету →
-              </a>
-            </div>
-          </div>
-        `,
-      }, { headers: corsHeaders });
+        html: formatSurveyAlert(user_id),
+      }, { headers: CORS_HEADERS });
     }
 
     // 2. Получаем урок по slug (ищем в title или другом поле)
@@ -85,113 +71,38 @@ export async function POST(request: NextRequest) {
     if (!lessonData) {
       return NextResponse.json({
         ok: true,
-        html: `
-          <div class="persona-block">
-            <div class="persona-alert persona-warning">
-              <p>Урок "${title}" не найден в базе данных.</p>
-            </div>
-          </div>
-        `,
-      }, { headers: corsHeaders });
+        html: formatNotFoundAlert(`Урок "${title}" не найден в базе данных.`),
+      }, { headers: CORS_HEADERS });
     }
 
     // 3. Получаем персонализацию для этого урока
-    const { data: personalization } = await supabase
-      .from("personalized_lesson_descriptions")
-      .select("content")
-      .eq("profile_id", profile.id)
-      .eq("lesson_id", lessonData.id)
-      .maybeSingle();
+    const personalization = await getPersonalization(profile.id, lessonData.id);
 
-    if (!personalization || !personalization.content) {
+    if (!personalization) {
       return NextResponse.json({
         ok: true,
-        html: `
-          <div class="persona-block">
-            <div class="persona-alert">
-              <h3>📝 Персонализация недоступна</h3>
-              <p>Для этого урока еще не создано персональное описание. Пожалуйста, заполните анкету, чтобы получить персонализированные рекомендации.</p>
-              <a href="/survey/iframe?uid=${user_id}" class="persona-btn" target="_blank">
-                Заполнить анкету →
-              </a>
-            </div>
-          </div>
-        `,
-      }, { headers: corsHeaders });
+        html: formatPersonalizationUnavailableAlert(user_id),
+      }, { headers: CORS_HEADERS });
     }
 
     // 4. Формируем HTML из персонализации
-    const content = personalization.content as Record<string, unknown>;
-    const summaryShort = content.summary_short as string || "";
-    const whyWatch = content.why_watch as string || "";
-    const quickAction = content.quick_action as string || "";
-    const socialShare = content.social_share as string || "";
-    const homework20m = content.homework_20m as string || "";
-
-    const html = `
-      <div class="persona-block">
-        ${summaryShort ? `
-          <div class="persona-section">
-            <h3 class="persona-section-title">📝 О уроке</h3>
-            <p class="persona-text">${summaryShort}</p>
-          </div>
-        ` : ''}
-
-
-        ${whyWatch ? `
-          <div class="persona-section">
-            <h3 class="persona-section-title">🎯 Зачем смотреть</h3>
-            <p class="persona-text">${whyWatch}</p>
-          </div>
-        ` : ''}
-
-        ${quickAction ? `
-          <div class="persona-section">
-            <h3 class="persona-section-title">⚡ Быстрое действие</h3>
-            <p class="persona-text">${quickAction}</p>
-          </div>
-        ` : ''}
-
-        ${homework20m ? `
-          <div class="persona-section persona-homework">
-            <h3 class="persona-section-title">📚 Домашнее задание (20 мин)</h3>
-            <p class="persona-text">${homework20m}</p>
-          </div>
-        ` : ''}
-
-        ${socialShare ? `
-          <div class="persona-section persona-social">
-            <h3 class="persona-section-title">📱 Поделиться</h3>
-            <p class="persona-text">${socialShare}</p>
-          </div>
-        ` : ''}
-      </div>
-    `;
+    const html = formatPersonalizedContent(personalization);
 
     return NextResponse.json({
       ok: true,
       html: html,
       cached: !flush,
-    }, { headers: corsHeaders });
+    }, { headers: CORS_HEADERS });
 
   } catch (error) {
     console.error("Error in POST /api/persona/block:", error);
     return NextResponse.json(
       { ok: false, error: "Internal server error" },
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
 
 // Добавляем обработчик OPTIONS для CORS preflight
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
-}
+export const OPTIONS = createOptionsHandler();
 
