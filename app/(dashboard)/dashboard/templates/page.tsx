@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import fs from "fs";
 import path from "path";
 
@@ -42,6 +43,11 @@ export default function TemplatesPage() {
       </p>
 
       <div className="space-y-6">
+        {templates.length === 0 && (
+          <div className="rounded-md border p-4 text-sm text-muted-foreground">
+            Файлы шаблонов не найдены. Сгенерируйте их командой <code>pnpm templates:regenerate</code>.
+          </div>
+        )}
         {templates.map(({ lessonNumber, fileName, template }) => (
           <section key={fileName} className="rounded-lg border p-5">
             <div className="mb-2 flex items-center justify-between">
