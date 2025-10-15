@@ -123,7 +123,6 @@ export async function POST(request: NextRequest) {
     // 4. Формируем HTML из персонализации
     const content = personalization.content as Record<string, unknown>;
     const summaryShort = content.summary_short as string || "";
-    const prevLessons = content.prev_lessons as string || "";
     const whyWatch = content.why_watch as string || "";
     const quickAction = content.quick_action as string || "";
     const socialShare = content.social_share as string || "";
@@ -138,12 +137,6 @@ export async function POST(request: NextRequest) {
           </div>
         ` : ''}
 
-        ${prevLessons ? `
-          <div class="persona-section">
-            <h3 class="persona-section-title">📚 Что мы изучили</h3>
-            <p class="persona-text">${prevLessons}</p>
-          </div>
-        ` : ''}
 
         ${whyWatch ? `
           <div class="persona-section">

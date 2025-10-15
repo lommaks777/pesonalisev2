@@ -143,7 +143,6 @@ async function generateTemplatePersonalization(
   if (!template.summary_short) {
     template = {
       summary_short: `Урок ${lesson.lesson_number}: ${lesson.title}`,
-      prev_lessons: lesson.lesson_number === 1 ? "Это первый урок курса" : "Мы изучили основы массажа на предыдущих уроках",
       why_watch: "Этот урок поможет вам освоить важные техники массажа",
       quick_action: "Просмотрите видео урока внимательно",
       social_share: "Изучаю новые техники массажа!",
@@ -176,7 +175,6 @@ ${JSON.stringify(template, null, 2)}
 ФОРМАТ ОТВЕТА (JSON):
 {
   "summary_short": "Персонализированное краткое описание",
-  "prev_lessons": "Что было на предыдущих уроках с учетом прогресса студента",
   "why_watch": "Зачем смотреть этот урок с учетом мотивации студента",
   "quick_action": "Быстрое действие с учетом модели для практики",
   "social_share": "Сообщение для социальных сетей",
