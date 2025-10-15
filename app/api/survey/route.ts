@@ -196,12 +196,27 @@ async function generateTemplatePersonalization(
   lesson: { lesson_number: number; title: string; summary: string | null },
   userName: string
 ): Promise<Record<string, unknown>> {
-  // Загружаем шаблон урока
-  const templatePath = path.join(process.cwd(), 'store', 'shvz', `${lesson.lesson_number}-${lesson.lesson_number}-${getLessonId(lesson.lesson_number)}-final.json`);
-  
+  // Загружаем шаблон урока (поддерживаем разные схемы именования файлов)
+  const dir = path.join(process.cwd(), 'store', 'shvz');
+  const id = getLessonId(lesson.lesson_number);
+  const candidates = [
+    `${lesson.lesson_number}-${lesson.lesson_number}-${id}-final.json`,
+    `${lesson.lesson_number}-${id}-final.json`,
+    `${id}-final.json`,
+  ];
+
   let template: any = {};
+  let templatePath = "";
   
-  if (fs.existsSync(templatePath)) {
+  for (const name of candidates) {
+    const p = path.join(dir, name);
+    if (fs.existsSync(p)) {
+      templatePath = p;
+      break;
+    }
+  }
+
+  if (templatePath) {
     try {
       template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
     } catch (error) {
@@ -284,20 +299,20 @@ ${JSON.stringify(template, null, 2)}
  */
 function getLessonId(lessonNumber: number): string {
   const lessonIds: Record<number, string> = {
-    1: "1-f9b62dc5-9b76-491d-8b9b-2b72411df740",
-    2: "c8a90762-6fca-47a8-80c3-5f454ae05273",
-    3: "1c75e3db-9afd-4237-8b8f-16be2b00ae0c",
-    4: "61b19549-d1bf-4265-bb1e-ff21ae7891a0",
-    5: "5-387be494-dcf4-41a0-83c2-380fdd4f4cc1",
-    6: "6-913d5be1-bbfb-4d32-b4d2-157d10551389",
-    7: "7-e0f961c1-b8e3-4f57-939d-fb188d2703a9",
-    8: "722e1278-2dcf-4e76-baa3-8d674f3abda4",
-    9: "56766339-03e0-4c1b-9d99-cc49590ad3fd",
-    10: "10-69b9560e-2af2-4690-af44-1398ace0f75e",
-    11: "11-8227a790-17ef-489a-8538-afbe2c4c10ce",
-    12: "12-26ef3e23-3d2e-4461-80bf-622f26737528",
+    1: "c8a90762-6fca-47a8-80c3-5f454ae05273",
+    2: "26ef3e23-3d2e-4461-80bf-622f26737528",
+    3: "56766339-03e0-4c1b-9d99-cc49590ad3fd",
+    4: "8227a790-17ef-489a-8538-afbe2c4c10ce",
+    5: "f9b62dc5-9b76-491d-8b9b-2b72411df740",
+    6: "1c75e3db-9afd-4237-8b8f-16be2b00ae0c",
+    7: "387be494-dcf4-41a0-83c2-380fdd4f4cc1",
+    8: "61b19549-d1bf-4265-bb1e-ff21ae7891a0",
+    9: "e0f961c1-b8e3-4f57-939d-fb188d2703a9",
+    10: "913d5be1-bbfb-4d32-b4d2-157d10551389",
+    11: "69b9560e-2af2-4690-af44-1398ace0f75e",
+    12: "722e1278-2dcf-4e76-baa3-8d674f3abda4",
   };
-  
+
   return lessonIds[lessonNumber] || "";
 }
 

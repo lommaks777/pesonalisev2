@@ -113,6 +113,15 @@ ${transcript}
 - Не добавляй ссылки, источники и «лишние» эмодзи; используй эмодзи только в заголовках, как в шаблоне.
 - Если данных для какого-то раздела нет — просто опусти его.
 
+ЖЁСТКИЕ ЗАПРЕТЫ:
+- Не используй общие фразы уровня «вы узнаете/поймёте/эта техника важна» без факта из транскрипта.
+- Не добавляй техники, зоны, эффекты, противопоказания, которых нет в транскрипте.
+- Пиши только факты и формулировки, которые прямо следуют из транскрипта (или нейтральные связки).
+
+ТОЧНОСТЬ:
+- Используй только те мышцы/зоны/приёмы, что названы в транскрипте; остальное опускай.
+- Если критерии эффективности/тайминги не названы — не выдумывай.
+
 ПРИМЕЧАНИЕ ПО ПЕРЕФОРМАТИРОВАНИЮ ТЕКСТА:
 - Аггрегируй рассыпанные по уроку шаги в логичный порядок: подготовка → ключевые приёмы → контроль ощущений/безопасность → завершение.
 - Критерии эффективности (покраснение/потепление тканей, снижение боли ~50%, т.д.) выноси в «Ключевые моменты» или «Практические советы» — если они есть в транскрипте.
@@ -188,19 +197,11 @@ ${transcript}
  */
 function saveLessonTemplate(lessonNumber: number, template: Record<string, string>): boolean {
   try {
-    // Находим существующий файл для получения правильного имени
     const transcriptDir = path.join(process.cwd(), 'store', 'shvz');
-    const files = fs.readdirSync(transcriptDir);
-    const existingFile = files.find(file => 
-      file.startsWith(`${lessonNumber}-`) && file.endsWith('-final.json')
-    );
-
-    if (!existingFile) {
-      console.log(`❌ Не найден существующий файл для урока ${lessonNumber}`);
-      return false;
-    }
-
-    const outputPath = path.join(transcriptDir, existingFile);
+    const id = getLessonId(lessonNumber);
+    // Единый формат имени файла: {number}-{id}-final.json
+    const fileName = `${lessonNumber}-${id}-final.json`;
+    const outputPath = path.join(transcriptDir, fileName);
     
     // Создаем резервную копию
     const backupPath = outputPath.replace('.json', '-backup.json');
