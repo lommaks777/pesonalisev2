@@ -1,7 +1,20 @@
 import "dotenv/config";
 import { createClient } from '@supabase/supabase-js';
-import { personalizeLesson, type LessonInfo } from "../lib/services/openai";
-import { loadLessonTemplate } from "../lib/services/lesson-templates";
+import { getOpenAIClient } from "../lib/services/openai";
+
+interface SurveyData {
+  motivation?: string[];
+  target_clients?: string;
+  skills_wanted?: string;
+  fears?: string[];
+  wow_result?: string;
+  practice_model?: string;
+}
+
+interface LessonMetadata {
+  lesson_number: number;
+  title: string;
+}
 
 // Конфигурация Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,6 +34,92 @@ if (!supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+async function generatePersonalizedDescription(
+  transcript: string,
+  lessonMetadata: LessonMetadata,
+  survey: SurveyData,
+  userName: string
+): Promise<any> {
+  const openai = getOpenAIClient();
+
+  const prompt = `Ты - опытный методолог курса массажа и копирайтер. Твоя задача - создать ГЛУБОКО ПЕРСОНАЛИЗИРОВАННОЕ описание урока на основе полной расшифровки видео и детальной анкеты студента.
+
+ИНФОРМАЦИЯ ОБ УРОКЕ:
+Номер урока: ${lessonMetadata.lesson_number}
+Название: ${lessonMetadata.title}
+
+ПОЛНАЯ РАСШИФРОВКА УРОКА (${transcript.length} символов):
+${transcript.substring(0, 15000)}${transcript.length > 15000 ? "..." : ""}
+
+АНКЕТА СТУДЕНТА:
+- Имя: ${userName}
+- Мотивация: ${survey.motivation?.join(", ") || "не указано"}
+- Целевые клиенты: ${survey.target_clients || "не указано"}
+- Желаемые навыки: ${survey.skills_wanted || "не указано"}
+- Страхи/опасения: ${survey.fears?.join(", ") || "не указано"}
+- Желаемый wow-результат: ${survey.wow_result || "не указано"}
+- Модель практики: ${survey.practice_model || "не указано"}
+
+ЗАДАНИЕ:
+Создай персонализированное описание урока, которое демонстрирует КОНКРЕТНУЮ ЦЕННОСТЬ для ЭТОГО студента.
+
+СТРУКТУРА ОПИСАНИЯ (7 разделов):
+
+1. **introduction** (Введение): 2-3 предложения
+2. **why_it_matters_for_you** (Почему это важно именно для вас): 4-5 предложений
+3. **key_takeaways** (Ключевые выводы): Массив из 3-4 пунктов
+4. **practical_application** (Практическое применение): 3-4 предложения
+5. **addressing_fears** (Ответ на опасения): 2-3 предложения
+6. **personalized_homework** (Персональное домашнее задание): 2-4 предложения
+7. **motivational_quote** (Мотивационная фраза): 1 предложение
+
+ФОРМАТ ОТВЕТА (строго JSON):
+{
+  "introduction": "строка",
+  "why_it_matters_for_you": "строка",
+  "key_takeaways": ["пункт 1", "пункт 2", "пункт 3"],
+  "practical_application": "строка",
+  "addressing_fears": "строка",
+  "personalized_homework": "строка",
+  "motivational_quote": "строка"
+}
+
+Отвечай ТОЛЬКО валидным JSON без markdown-разметки и дополнительного текста.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "Ты - опытный методолог курса массажа и копирайтер. Создаёшь глубоко персонализированные описания уроков. Отвечаешь только валидным JSON.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 2500,
+      response_format: { type: "json_object" },
+    });
+
+    const content = completion.choices[0]?.message?.content || "{}";
+    let cleanContent = content.trim();
+    if (cleanContent.startsWith('```json')) {
+      cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    }
+    if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    return JSON.parse(cleanContent);
+  } catch (error) {
+    console.error("Error generating personalization:", error);
+    throw error;
+  }
+}
+
 async function updateUserPersonalizations(userId: string) {
   console.log(`🔄 Обновляем персонализации для пользователя ${userId}...`);
 
@@ -39,10 +138,10 @@ async function updateUserPersonalizations(userId: string) {
 
     console.log(`✅ Найден профиль: ${profile.name}`);
 
-    // 2. Получаем все уроки
+    // 2. Получаем все уроки с расшифровками
     const { data: lessons, error: lessonsError } = await supabase
       .from("lessons")
-      .select("id, lesson_number, title")
+      .select("id, lesson_number, title, content")
       .order("lesson_number", { ascending: true });
 
     if (lessonsError || !lessons) {
@@ -64,24 +163,32 @@ async function updateUserPersonalizations(userId: string) {
       console.log("🗑️ Старые персонализации удалены");
     }
 
-    // 4. Генерируем новые персонализации
+    // 4. Генерируем новые персонализации с НОВЫМ движком (прямо из расшифровок)
     const results = [];
     for (const lesson of lessons) {
       console.log(`🔄 Генерируем персонализацию для урока ${lesson.lesson_number}...`);
       
       try {
-        const template = await loadLessonTemplate(lesson.lesson_number);
+        // Загружаем расшифровку из базы данных
+        const transcriptData = lesson.content as any;
         
-        const lessonInfo: LessonInfo = {
+        if (!transcriptData || !transcriptData.transcription) {
+          console.warn(`⚠️  Нет расшифровки для урока ${lesson.lesson_number}, пропускаем`);
+          results.push({ lessonNumber: lesson.lesson_number, success: false });
+          continue;
+        }
+        
+        const lessonMetadata: LessonMetadata = {
           lesson_number: lesson.lesson_number,
           title: lesson.title,
         };
         
-        const personalization = await personalizeLesson(
-          template,
-          profile.survey,
-          profile.name,
-          lessonInfo
+        // Генерируем персонализацию напрямую из расшифровки с GPT-4o
+        const personalization = await generatePersonalizedDescription(
+          transcriptData.transcription,
+          lessonMetadata,
+          profile.survey as SurveyData,
+          profile.name
         );
 
         // Сохраняем персонализацию
@@ -97,7 +204,7 @@ async function updateUserPersonalizations(userId: string) {
           console.error(`❌ Ошибка при сохранении урока ${lesson.lesson_number}:`, saveError.message);
           results.push({ lessonNumber: lesson.lesson_number, success: false });
         } else {
-          console.log(`✅ Урок ${lesson.lesson_number} обновлен`);
+          console.log(`✅ Урок ${lesson.lesson_number} обновлён (НОВЫЙ движок: прямо из расшифровки)`);
           results.push({ lessonNumber: lesson.lesson_number, success: true });
         }
       } catch (error) {

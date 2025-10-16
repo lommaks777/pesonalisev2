@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест персонализации для UID 21179358</title>
+    <link rel="stylesheet" href="/persona/styles.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .test-controls {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .test-error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .test-success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        button.secondary {
+            background: #757575;
+        }
+        button.secondary:hover {
+            background: #616161;
+        }
+        #debug-info {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        .lesson-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .lesson-tab {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #2196f3;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .lesson-tab:hover {
+            background: #2196f3;
+            color: white;
+        }
+        .lesson-tab.active {
+            background: #2196f3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест персонализации для UID 21179358</h1>
+    
+    <div class="test-info">
+        <h3>ℹ️ Информация о тесте</h3>
+        <p><strong>User ID:</strong> 21179358</p>
+        <p><strong>Ожидается:</strong> Персонализированный контент (не базовая версия)</p>
+        <p><strong>API Endpoint:</strong> /api/persona/block</p>
+    </div>
+
+    <div class="test-controls">
+        <h2>Выберите урок для проверки</h2>
+        <div class="lesson-tabs" id="lessonTabs"></div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="testAPI()">🧪 Тест API</button>
+            <button onclick="showDebugInfo()" class="secondary">🔍 Debug Info</button>
+            <button onclick="clearResults()" class="secondary">🗑️ Очистить</button>
+        </div>
+    </div>
+
+    <div id="statusMessage"></div>
+    <div id="result"></div>
+    <div id="debug-info" style="display: none;"></div>
+
+    <script>
+        const USER_ID = '21179358';
+        let currentLesson = 1;
+        let lastResponse = null;
+
+        // Создаем вкладки для уроков
+        function initLessonTabs() {
+            const tabsContainer = document.getElementById('lessonTabs');
+            for (let i = 1; i <= 12; i++) {
+                const tab = document.createElement('div');
+                tab.className = 'lesson-tab' + (i === 1 ? ' active' : '');
+                tab.textContent = `Урок ${i}`;
+                tab.onclick = () => selectLesson(i);
+                tabsContainer.appendChild(tab);
+            }
+        }
+
+        function selectLesson(lessonNum) {
+            currentLesson = lessonNum;
+            document.querySelectorAll('.lesson-tab').forEach((tab, idx) => {
+                tab.classList.toggle('active', idx + 1 === lessonNum);
+            });
+            
+            // Автоматически загружаем урок
+            testAPI();
+        }
+
+        async function testAPI() {
+            const statusDiv = document.getElementById('statusMessage');
+            const resultDiv = document.getElementById('result');
+            
+            statusDiv.innerHTML = '<div class="test-info">⏳ Загрузка персонализации для урока ' + currentLesson + '...</div>';
+            resultDiv.innerHTML = '';
+
+            try {
+                const requestBody = {
+                    user_id: USER_ID,
+                    lesson: currentLesson.toString(),
+                    title: 'Урок ' + currentLesson
+                };
+
+                console.log('Отправка запроса:', requestBody);
+
+                const response = await fetch('/api/persona/block', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                lastResponse = { request: requestBody, response: data, status: response.status };
+
+                console.log('Ответ получен:', data);
+
+                if (!response.ok) {
+                    statusDiv.innerHTML = '<div class="test-error">❌ Ошибка HTTP: ' + response.status + '</div>';
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    return;
+                }
+
+                if (data.ok && data.html) {
+                    // Проверяем тип контента
+                    const isDefault = data.html.includes('persona-default') || data.html.includes('Базовая версия урока');
+                    const isPersonalized = !isDefault;
+
+                    if (isPersonalized) {
+                        statusDiv.innerHTML = '<div class="test-success">✅ Персонализированный контент загружен!</div>';
+                    } else {
+                        statusDiv.innerHTML = '<div class="test-error">⚠️ Получена базовая версия урока (не персонализированная)</div>';
+                    }
+
+                    // Показываем количество секций
+                    const sectionMatches = data.html.match(/<h3 class="persona-section-title">/g);
+                    const sectionCount = sectionMatches ? sectionMatches.length : 0;
+                    
+                    statusDiv.innerHTML += '<p><strong>Секций в контенте:</strong> ' + sectionCount + '</p>';
+                    
+                    // Показываем HTML
+                    resultDiv.innerHTML = data.html;
+
+                    // Анализ содержимого
+                    analyzeContent(data.html);
+                } else {
+                    statusDiv.innerHTML = '<div class="test-error">❌ Некорректный ответ: отсутствует HTML</div>';
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="test-error">❌ Ошибка запроса: ' + error.message + '</div>';
+                console.error('Ошибка:', error);
+            }
+        }
+
+        function analyzeContent(html) {
+            const statusDiv = document.getElementById('statusMessage');
+            
+            // Извлекаем заголовки секций
+            const sections = [];
+            const regex = /<h3 class="persona-section-title">([^<]+)<\/h3>/g;
+            let match;
+            while ((match = regex.exec(html)) !== null) {
+                sections.push(match[1].trim());
+            }
+
+            if (sections.length > 0) {
+                statusDiv.innerHTML += '<div class="test-info"><strong>📋 Найденные секции:</strong><br>' + 
+                    sections.map(s => '• ' + s).join('<br>') + '</div>';
+            }
+
+            // Проверка на персонализацию (упоминание имени)
+            const hasName = html.includes('Алексей') || html.includes('Привет,');
+            const hasSurveyButton = html.includes('Заполнить анкету');
+            const isDefaultBadge = html.includes('Базовая версия урока');
+
+            statusDiv.innerHTML += '<div class="test-info"><strong>🔍 Анализ контента:</strong><br>';
+            statusDiv.innerHTML += '• Упоминание имени (Алексей): ' + (hasName ? '✅ Да' : '❌ Нет') + '<br>';
+            statusDiv.innerHTML += '• Кнопка "Заполнить анкету": ' + (hasSurveyButton ? '⚠️ Да (базовая версия)' : '✅ Нет') + '<br>';
+            statusDiv.innerHTML += '• Бейдж "Базовая версия": ' + (isDefaultBadge ? '❌ Да' : '✅ Нет') + '<br>';
+            statusDiv.innerHTML += '</div>';
+        }
+
+        function showDebugInfo() {
+            const debugDiv = document.getElementById('debug-info');
+            
+            if (debugDiv.style.display === 'none') {
+                if (lastResponse) {
+                    debugDiv.textContent = JSON.stringify(lastResponse, null, 2);
+                    debugDiv.style.display = 'block';
+                } else {
+                    alert('Сначала выполните тест API');
+                }
+            } else {
+                debugDiv.style.display = 'none';
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('statusMessage').innerHTML = '';
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('debug-info').style.display = 'none';
+            lastResponse = null;
+        }
+
+        // Инициализация
+        initLessonTabs();
+        
+        // Автоматически загружаем урок 1 при открытии
+        window.onload = () => {
+            setTimeout(() => {
+                testAPI();
+            }, 500);
+        };
+    </script>
+</body>
+</html>

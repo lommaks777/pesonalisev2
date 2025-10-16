@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Legacy lesson template loading functionality
+ * 
+ * @deprecated This module is deprecated in favor of the new personalization-engine.ts
+ * which generates personalized content directly from lesson transcripts stored in the database.
+ * 
+ * Migration path:
+ * - Instead of loadLessonTemplate() → use loadLessonTranscript() from personalization-engine.ts
+ * - Instead of personalizeLesson(template) → use generatePersonalizedDescription(transcript)
+ * 
+ * This file is kept for backward compatibility only.
+ */
+
 import fs from "fs";
 import path from "path";
 

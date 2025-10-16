@@ -30,24 +30,22 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
 
+    console.log('[/api/persona/block] Request:', { user_id, lesson, title });
+
     // 1. Получаем профиль пользователя по user_identifier
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, name")
       .eq("user_identifier", user_id)
       .maybeSingle();
+    
+    console.log('[/api/persona/block] Profile found:', profile ? `ID: ${profile.id}, Name: ${profile.name}` : 'Not found');
 
-    // 2. Получаем урок по slug (ищем в title или другом поле)
-    // Улучшенный поиск: сначала пробуем точное совпадение, затем частичное
-    let { data: lessonData } = await supabase
-      .from("lessons")
-      .select("id, title, lesson_number")
-      .ilike("title", `%${lesson}%`)
-      .limit(1)
-      .maybeSingle();
-
-    // Если не нашли по частичному совпадению, пробуем поиск по номеру урока
-    if (!lessonData && /^\d+$/.test(lesson)) {
+    // 2. Получаем урок - СНАЧАЛА пробуем поиск по номеру, затем по названию
+    let lessonData: any = null;
+    
+    // Если lesson - это число, ищем по lesson_number
+    if (/^\d+$/.test(lesson)) {
       const lessonNumber = parseInt(lesson);
       const { data: lessonByNumber } = await supabase
         .from("lessons")
@@ -60,15 +58,33 @@ export async function POST(request: NextRequest) {
         lessonData = lessonByNumber;
       }
     }
+    
+    // Если не нашли по номеру, пробуем поиск по названию
+    if (!lessonData) {
+      const { data: lessonByTitle } = await supabase
+        .from("lessons")
+        .select("id, title, lesson_number")
+        .ilike("title", `%${lesson}%`)
+        .limit(1)
+        .maybeSingle();
+      
+      if (lessonByTitle) {
+        lessonData = lessonByTitle;
+      }
+    }
 
     if (!lessonData) {
+      console.log('[/api/persona/block] Lesson not found for:', lesson);
       return NextResponse.json({
         ok: true,
         html: formatNotFoundAlert(`Урок "${title}" не найден в базе данных.`),
       }, { headers: CORS_HEADERS });
     }
+    
+    console.log('[/api/persona/block] Lesson found:', { id: lessonData.id, number: lessonData.lesson_number, title: lessonData.title });
 
     if (!profile) {
+      console.log('[/api/persona/block] Profile not found, returning default template');
       // Пользователь не найден - возвращаем базовый шаблон урока
       const template = await loadLessonTemplate(lessonData.lesson_number);
       const html = formatDefaultTemplateContent(
@@ -88,8 +104,14 @@ export async function POST(request: NextRequest) {
 
     // 3. Получаем персонализацию для этого урока
     const personalization = await getPersonalization(profile.id, lessonData.id);
+    
+    console.log('[/api/persona/block] Personalization found:', personalization ? 'Yes' : 'No');
+    if (personalization) {
+      console.log('[/api/persona/block] Personalization keys:', Object.keys(personalization));
+    }
 
     if (!personalization) {
+      console.log('[/api/persona/block] No personalization, returning alert');
       return NextResponse.json({
         ok: true,
         html: formatPersonalizationUnavailableAlert(user_id),
@@ -98,6 +120,8 @@ export async function POST(request: NextRequest) {
 
     // 4. Формируем HTML из персонализации
     const html = formatPersonalizedContent(personalization);
+    
+    console.log('[/api/persona/block] Returning personalized content, HTML length:', html.length);
 
     return NextResponse.json({
       ok: true,

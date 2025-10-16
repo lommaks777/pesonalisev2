@@ -1,0 +1,82 @@
+{
+  "totalFiles": 14,
+  "successful": 12,
+  "failed": 0,
+  "skipped": 2,
+  "results": [
+    {
+      "lessonNumber": 1,
+      "lessonId": "13913924-87dc-4842-a9fa-9fd553bffe85",
+      "success": true,
+      "transcriptLength": 15249
+    },
+    {
+      "lessonNumber": 10,
+      "lessonId": "65befd4b-710c-4e06-a1e5-7b7370ffb4a7",
+      "success": true,
+      "transcriptLength": 7200
+    },
+    {
+      "lessonNumber": 11,
+      "lessonId": "e846e69c-b95b-4996-9487-5b459d6700b6",
+      "success": true,
+      "transcriptLength": 10173
+    },
+    {
+      "lessonNumber": 12,
+      "lessonId": "d96200a1-cf08-4d2e-9900-5135f483eb3e",
+      "success": true,
+      "transcriptLength": 15083
+    },
+    {
+      "lessonNumber": 2,
+      "lessonId": "930a17da-ea11-420f-a79b-a0da6ff51dee",
+      "success": true,
+      "transcriptLength": 4646
+    },
+    {
+      "lessonNumber": 3,
+      "lessonId": "d9b53957-3ddf-4594-b780-1ad01149b57f",
+      "success": true,
+      "transcriptLength": 31099
+    },
+    {
+      "lessonNumber": 4,
+      "lessonId": "339cdc00-f04e-4d52-bbaa-d755b8fe69c7",
+      "success": true,
+      "transcriptLength": 16860
+    },
+    {
+      "lessonNumber": 5,
+      "lessonId": "6f6221b6-7ea3-4319-afed-d4287f5ea1c3",
+      "success": true,
+      "transcriptLength": 9625
+    },
+    {
+      "lessonNumber": 6,
+      "lessonId": "1feb7481-ae90-49df-bfe7-b16622347b04",
+      "success": true,
+      "transcriptLength": 19423
+    },
+    {
+      "lessonNumber": 7,
+      "lessonId": "84c2603f-ec9e-4b3e-8924-8758ff88c88a",
+      "success": true,
+      "transcriptLength": 11511
+    },
+    {
+      "lessonNumber": 8,
+      "lessonId": "802af9db-d639-4e27-aa02-f62d700da633",
+      "success": true,
+      "transcriptLength": 18948
+    },
+    {
+      "lessonNumber": 9,
+      "lessonId": "c4ecf50a-1115-455e-b760-f67defb22b3c",
+      "success": true,
+      "transcriptLength": 5199
+    }
+  ],
+  "startTime": "2025-10-16T17:48:27.688Z",
+  "endTime": "2025-10-16T17:48:39.030Z"
+}

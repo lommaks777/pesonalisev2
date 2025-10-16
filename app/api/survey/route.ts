@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { personalizeLesson, type SurveyData as SurveyDataBase, type LessonInfo } from "@/lib/services/openai";
-import { loadLessonTemplate } from "@/lib/services/lesson-templates";
+import { 
+  generatePersonalizedDescription,
+  loadLessonTranscript,
+  type SurveyData as SurveyDataBase,
+  type LessonMetadata
+} from "@/lib/services/personalization-engine";
 import { upsertProfile } from "@/lib/services/profile";
 import { savePersonalization, getPersonalization } from "@/lib/services/personalization";
 import { formatPersonalizedContent } from "@/lib/services/html-formatter";
@@ -56,7 +60,7 @@ export async function POST(request: NextRequest) {
     // 2. Получаем все уроки курса
     const { data: lessons, error: lessonsError } = await supabase
       .from("lessons")
-      .select("id, lesson_number, title, summary")
+      .select("id, lesson_number, title, content")
       .eq("course_id", await getCourseId(supabase, surveyData.course))
       .order("lesson_number");
 
@@ -71,22 +75,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Генерируем персонализации для каждого урока на основе готовых шаблонов
+    // 3. Генерируем персонализации для каждого урока на основе полных расшифровок
     const personalizationPromises = lessons.map(async (lesson) => {
       try {
-        const template = await loadLessonTemplate(lesson.lesson_number);
+        // Загружаем расшифровку из базы данных
+        const transcriptData = await loadLessonTranscript(lesson.id);
         
-        const lessonInfo: LessonInfo = {
+        if (!transcriptData || !transcriptData.transcription) {
+          console.warn(`No transcript found for lesson ${lesson.id}, skipping`);
+          return { lessonId: lesson.id, success: false };
+        }
+        
+        const lessonMetadata: LessonMetadata = {
           lesson_number: lesson.lesson_number,
           title: lesson.title,
-          summary: lesson.summary,
         };
         
-        const personalization = await personalizeLesson(
-          template,
+        // Генерируем персонализацию напрямую из расшифровки
+        const personalization = await generatePersonalizedDescription(
+          lesson.id,
+          transcriptData.transcription,
+          lessonMetadata,
           surveyData,
-          profile.name,
-          lessonInfo
+          profile.name
         );
 
         // Сохраняем персонализацию

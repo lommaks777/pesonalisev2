@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест GetCourse блока для UID 21179358</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .test-controls {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        .lesson-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .lesson-header {
+            background: #424242;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест GetCourse блока</h1>
+    
+    <div class="info-box">
+        <h3>ℹ️ Параметры теста</h3>
+        <p><strong>User ID:</strong> <code>21179358</code></p>
+        <p><strong>API:</strong> <code>http://localhost:3000/api/persona/block</code></p>
+        <p><strong>Lesson:</strong> <code data-lesson-num>2</code> (номер урока, не название)</p>
+        <p><strong>Ожидается:</strong> Персонализированный контент для Алексея</p>
+    </div>
+
+    <div class="test-controls">
+        <h3>Выберите урок:</h3>
+        <button onclick="loadLesson(1)">Урок 1</button>
+        <button onclick="loadLesson(2)">Урок 2</button>
+        <button onclick="loadLesson(3)">Урок 3</button>
+        <button onclick="loadLesson(5)">Урок 5</button>
+        <button onclick="loadLesson(10)">Урок 10</button>
+    </div>
+
+    <div class="lesson-container">
+        <div class="lesson-header">
+            <h2 id="lesson-title">Урок загружается...</h2>
+        </div>
+
+        <!-- ТОЧНО ТАК ЖЕ КАК В GETCOURSE -->
+        <div id="persona-lesson-2" 
+             data-lesson="2" 
+             data-title="ШВЗ Мышцы, с которыми мы будем работать в этом курсе" 
+             style="display:none;margin:30px 0;">
+        </div>
+
+        <script>
+        (async function(){
+          const API = "http://localhost:3000/api/persona"; // ЛОКАЛЬНЫЙ API ДЛЯ ТЕСТА
+          const UID = "21179358"; // ТЕСТОВЫЙ UID
+          const userId = UID && UID !== "{uid}" ? String(UID) : "guest";
+          const mount = document.getElementById('persona-lesson-2');
+          const lesson = mount.getAttribute('data-lesson'); // Теперь "2"
+          const title = mount.getAttribute('data-title');
+
+          console.log('[Persona] Loading lesson:', { userId, lesson, title });
+
+          try {
+            // Загружаем стили один раз
+            if (!document.querySelector('link[data-persona-styles]')) {
+              const link = document.createElement('link');
+              link.rel = 'stylesheet';
+              link.href = 'http://localhost:3000/persona/styles.css'; // ЛОКАЛЬНЫЕ СТИЛИ
+              link.setAttribute('data-persona-styles', '1');
+              document.head.appendChild(link);
+              console.log('[Persona] Styles loaded');
+            }
+
+            const requestBody = { 
+              user_id: userId, 
+              lesson: lesson,    // "2" вместо полного названия
+              title: title, 
+              flush: false 
+            };
+
+            console.log('[Persona] Fetching:', API + '/block', requestBody);
+
+            const r = await fetch(`${API}/block`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(requestBody)
+            });
+            
+            console.log('[Persona] Response status:', r.status);
+            
+            const data = await r.json();
+            
+            console.log('[Persona] Response data:', data);
+            
+            if (data?.ok && data?.html) {
+              mount.innerHTML = data.html;
+              mount.style.display = 'block';
+              console.log('[Persona] ✅ Content loaded, HTML length:', data.html.length);
+              
+              // Проверяем персонализацию
+              const isPersonalized = data.html.includes('Алексей') || !data.html.includes('Базовая версия');
+              console.log('[Persona] Is personalized:', isPersonalized);
+            } else {
+              console.warn('Персонализация недоступна:', data?.error || 'неизвестная ошибка');
+              mount.innerHTML = `<div style="color: red;">Ошибка: ${data?.error || 'неизвестная ошибка'}</div>`;
+              mount.style.display = 'block';
+            }
+          } catch(e) {
+            console.error('Persona block error:', e);
+            mount.innerHTML = `<div style="color: red;">Ошибка загрузки: ${e.message}</div>`;
+            mount.style.display = 'block';
+          }
+        })();
+        </script>
+    </div>
+
+    <div class="info-box" style="background: #fff3e0; border-color: #ff9800;">
+        <h3>📋 Результат теста</h3>
+        <p id="test-result">Откройте консоль браузера (F12) для подробных логов</p>
+    </div>
+
+    <script>
+        // Функция для динамической смены урока
+        function loadLesson(lessonNum) {
+            const mount = document.getElementById('persona-lesson-2');
+            const titleElement = document.getElementById('lesson-title');
+            document.querySelector('[data-lesson-num]').textContent = lessonNum;
+            
+            // Обновляем атрибуты
+            mount.setAttribute('data-lesson', lessonNum);
+            mount.setAttribute('data-title', `Урок ${lessonNum}`);
+            mount.innerHTML = '<p style="text-align:center;">⏳ Загрузка...</p>';
+            mount.style.display = 'block';
+            
+            titleElement.textContent = `Загрузка урока ${lessonNum}...`;
+            
+            // Перезагружаем скрипт
+            const API = "http://localhost:3000/api/persona";
+            const userId = "21179358";
+            const lesson = String(lessonNum);
+            const title = `Урок ${lessonNum}`;
+
+            console.log(`\n======= LOADING LESSON ${lessonNum} =======`);
+            console.log('[Persona] Request params:', { userId, lesson, title });
+
+            fetch(`${API}/block`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ user_id: userId, lesson, title, flush: false })
+            })
+            .then(r => {
+                console.log('[Persona] Response status:', r.status);
+                return r.json();
+            })
+            .then(data => {
+                console.log('[Persona] Response data:', data);
+                
+                if (data?.ok && data?.html) {
+                    mount.innerHTML = data.html;
+                    titleElement.textContent = `Урок ${lessonNum} загружен`;
+                    
+                    // Анализ
+                    const hasName = data.html.includes('Алексей');
+                    const isDefault = data.html.includes('Базовая версия');
+                    const isPersonalized = hasName && !isDefault;
+                    
+                    document.getElementById('test-result').innerHTML = `
+                        <strong>Урок ${lessonNum}:</strong><br>
+                        • Содержит имя "Алексей": ${hasName ? '✅ Да' : '❌ Нет'}<br>
+                        • Базовая версия: ${isDefault ? '⚠️ Да' : '✅ Нет'}<br>
+                        • <strong>Статус: ${isPersonalized ? '✅ ПЕРСОНАЛИЗИРОВАН' : '❌ НЕ ПЕРСОНАЛИЗИРОВАН'}</strong>
+                    `;
+                    
+                    console.log('[Persona] ✅ Success! Is personalized:', isPersonalized);
+                } else {
+                    mount.innerHTML = `<div style="color: red;">Ошибка: ${data?.error || 'неизвестная ошибка'}</div>`;
+                    titleElement.textContent = `Ошибка загрузки урока ${lessonNum}`;
+                    console.error('[Persona] Error:', data);
+                }
+            })
+            .catch(e => {
+                console.error('[Persona] Fetch error:', e);
+                mount.innerHTML = `<div style="color: red;">Ошибка: ${e.message}</div>`;
+                titleElement.textContent = `Ошибка урока ${lessonNum}`;
+            });
+        }
+
+        // Автозагрузка урока 2 при открытии страницы
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('Initial load complete, lesson 2 should be loaded');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

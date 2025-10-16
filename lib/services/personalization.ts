@@ -1,10 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PersonalizedContent } from "./openai";
+import { PersonalizedContent } from "./personalization-engine";
+import { PersonalizedContent as LegacyPersonalizedContent } from "./openai";
 
 export interface PersonalizationRecord {
   profile_id: string;
   lesson_id: string;
-  content: PersonalizedContent | Record<string, unknown>;
+  content: PersonalizedContent | LegacyPersonalizedContent | Record<string, unknown>;
   created_at?: string;
   updated_at?: string;
 }
@@ -21,7 +22,7 @@ export interface BatchResult {
 export async function savePersonalization(
   profileId: string,
   lessonId: string,
-  content: PersonalizedContent | Record<string, unknown>
+  content: PersonalizedContent | LegacyPersonalizedContent | Record<string, unknown>
 ): Promise<void> {
   try {
     const supabase = createSupabaseServerClient();
@@ -54,7 +55,7 @@ export async function savePersonalization(
 export async function getPersonalization(
   profileId: string,
   lessonId: string
-): Promise<PersonalizedContent | null> {
+): Promise<PersonalizedContent | LegacyPersonalizedContent | null> {
   try {
     const supabase = createSupabaseServerClient();
 
@@ -74,7 +75,7 @@ export async function getPersonalization(
       return null;
     }
 
-    return data.content as PersonalizedContent;
+    return data.content as (PersonalizedContent | LegacyPersonalizedContent);
   } catch (error) {
     console.error("Error in getPersonalization:", error);
     return null;
@@ -114,7 +115,7 @@ export async function batchSavePersonalizations(
   items: Array<{
     profileId: string;
     lessonId: string;
-    content: PersonalizedContent | Record<string, unknown>;
+    content: PersonalizedContent | LegacyPersonalizedContent | Record<string, unknown>;
   }>
 ): Promise<BatchResult> {
   const result: BatchResult = {

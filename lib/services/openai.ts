@@ -53,6 +53,10 @@ export interface LessonInfo {
 
 /**
  * Personalization prompt template for new 7-section structure
+ * 
+ * @deprecated Use personalization-engine.ts instead.
+ * This function is kept for backward compatibility with existing code.
+ * New implementations should use generatePersonalizedDescription() from personalization-engine.ts
  */
 function createPersonalizationPrompt(
   template: any,
@@ -136,6 +140,11 @@ ${JSON.stringify(template, null, 2)}
 /**
  * Core personalization logic with error handling
  * Returns personalized content or fallback to original template on error
+ * 
+ * @deprecated Use personalization-engine.ts instead.
+ * This function is kept for backward compatibility with existing code.
+ * New implementations should use generatePersonalizedDescription() from personalization-engine.ts
+ * which processes full transcripts instead of templates.
  */
 export async function personalizeLesson(
   template: any,
