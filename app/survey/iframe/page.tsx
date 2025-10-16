@@ -132,22 +132,23 @@ export default function SurveyIframePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {!nameParam && (
-            <div>
-              <label htmlFor="real_name" className="block font-semibold text-gray-700 mb-2">
-                Ваше имя: <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="real_name"
-                required
-                value={formData.real_name}
-                onChange={(e) => setFormData({ ...formData, real_name: e.target.value })}
-                placeholder="Например: Мария Иванова"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition text-gray-900 placeholder:text-gray-400"
-              />
-            </div>
-          )}
+          <div>
+            <label htmlFor="real_name" className="block font-semibold text-gray-700 mb-2">
+              Ваше имя: <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="real_name"
+              required
+              value={formData.real_name}
+              onChange={(e) => setFormData({ ...formData, real_name: e.target.value })}
+              placeholder="Например: Мария Иванова"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition text-gray-900 placeholder:text-gray-400"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              💡 Проверьте имя — иногда здесь может быть указан email
+            </p>
+          </div>
 
           <div>
             <label className="block font-semibold text-gray-700 mb-2">
