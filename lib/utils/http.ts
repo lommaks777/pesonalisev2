@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 
 /**
  * Standard CORS configuration
+ * Allows requests from any origin for API integration
  */
 export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+  "Access-Control-Max-Age": "86400", // 24 hours
 };
 
 /**
@@ -65,9 +67,11 @@ export function createErrorResponse(
 /**
  * Generic OPTIONS method handler for CORS preflight
  */
-export function createOptionsHandler(): NextResponse {
-  return new NextResponse(null, {
-    status: 200,
-    headers: CORS_HEADERS,
-  });
+export function createOptionsHandler() {
+  return function OPTIONS() {
+    return new NextResponse(null, {
+      status: 200,
+      headers: CORS_HEADERS,
+    });
+  };
 }

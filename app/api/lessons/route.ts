@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { CORS_HEADERS, createOptionsHandler } from "@/lib/utils/http";
 
 export async function GET() {
   const supabase = createSupabaseServerClient();
@@ -10,11 +11,13 @@ export async function GET() {
     .order("lesson_number", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500, headers: CORS_HEADERS });
   }
 
-  return NextResponse.json({ lessons: data });
+  return NextResponse.json({ lessons: data }, { headers: CORS_HEADERS });
 }
+
+export const OPTIONS = createOptionsHandler();
 
 
 

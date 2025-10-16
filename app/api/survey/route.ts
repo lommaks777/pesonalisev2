@@ -5,6 +5,7 @@ import { loadLessonTemplate } from "@/lib/services/lesson-templates";
 import { upsertProfile } from "@/lib/services/profile";
 import { savePersonalization, getPersonalization } from "@/lib/services/personalization";
 import { formatPersonalizedContent } from "@/lib/services/html-formatter";
+import { CORS_HEADERS, createOptionsHandler } from "@/lib/utils/http";
 
 interface SurveyData extends SurveyDataBase {
   real_name: string;
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (!surveyData.real_name || !surveyData.course) {
       return NextResponse.json(
         { error: "Имя и курс обязательны для заполнения" },
-        { status: 400 }
+        { status: 400, headers: CORS_HEADERS }
       );
     }
 
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       console.error("Error creating/updating profile");
       return NextResponse.json(
         { error: "Не удалось создать профиль" },
-        { status: 500 }
+        { status: 500, headers: CORS_HEADERS }
       );
     }
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
           profileId: profile.id,
           warning: "Профиль создан, но уроки не найдены" 
         },
-        { status: 200 }
+        { status: 200, headers: CORS_HEADERS }
       );
     }
 
@@ -129,16 +130,19 @@ export async function POST(request: NextRequest) {
       userIdentifier: userIdentifier,
       message: "Персональный курс успешно создан!",
       firstLessonPreview,
-    });
+    }, { headers: CORS_HEADERS });
 
   } catch (error) {
     console.error("Error in POST /api/survey:", error);
     return NextResponse.json(
       { error: "Внутренняя ошибка сервера" },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }
+
+// OPTIONS handler for CORS preflight
+export const OPTIONS = createOptionsHandler();
 
 /**
  * Получает ID курса по slug
