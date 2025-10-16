@@ -18,12 +18,14 @@ function escapeHtml(text: string): string {
 /**
  * Generates persona-block HTML from personalized content (new 7-section format)
  * Automatically detects and converts old 5-field format to new format
+ * Also supports alternative personalization formats
  */
 export function formatPersonalizedContent(content: PersonalizedContent | Record<string, unknown>): string {
   const typedContent = content as PersonalizedContent;
   
-  // Detect if this is old format (has summary_short, why_watch, etc.)
+  // Detect format: old (5-field), new (7-section), alternative, or emoji-keys
   const isOldFormat = 'summary_short' in content || 'why_watch' in content || 'homework_20m' in content;
+  const isAlternativeFormat = 'key_takeaways' in content || 'addressing_fears' in content || 'why_it_matters_for_you' in content;
   
   let introduction: string;
   let keyPoints: string[];
@@ -34,7 +36,7 @@ export function formatPersonalizedContent(content: PersonalizedContent | Record<
   let motivationalLine: string;
   
   if (isOldFormat) {
-    // Convert old format to new format
+    // Convert old format (5 fields) to new format
     const oldContent = content as any;
     introduction = oldContent.summary_short || "";
     
@@ -52,8 +54,27 @@ export function formatPersonalizedContent(content: PersonalizedContent | Record<
     motivationalLine = oldContent.social_share || "";
     importantNotes = undefined;
     equipmentPreparation = oldContent.prev_lessons;
+  } else if (isAlternativeFormat) {
+    // Convert alternative format (from old personalization-engine.ts)
+    const altContent = content as any;
+    introduction = altContent.introduction || "";
+    keyPoints = altContent.key_takeaways || [];
+    
+    // Combine practical_application and addressing_fears into practical_tips
+    practicalTips = [];
+    if (altContent.practical_application) {
+      practicalTips.push(altContent.practical_application);
+    }
+    if (altContent.addressing_fears) {
+      practicalTips.push(altContent.addressing_fears);
+    }
+    
+    homework = altContent.personalized_homework || "";
+    motivationalLine = altContent.motivational_quote || altContent.why_it_matters_for_you || "";
+    importantNotes = undefined;
+    equipmentPreparation = undefined;
   } else {
-    // Use new format directly
+    // Use new format directly (7 sections)
     introduction = typedContent.introduction || "";
     keyPoints = typedContent.key_points || [];
     practicalTips = typedContent.practical_tips || [];

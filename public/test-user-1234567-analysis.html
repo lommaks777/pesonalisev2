@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ персонализации - Виктор (1234567)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #2563eb;
+            font-size: 18px;
+            margin-top: 0;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 8px;
+        }
+        .survey-item {
+            margin: 16px 0;
+            padding: 12px;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+            border-radius: 4px;
+        }
+        .survey-label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .survey-value {
+            color: #1e293b;
+            font-size: 16px;
+        }
+        .survey-value ul {
+            margin: 4px 0;
+            padding-left: 20px;
+        }
+        .match {
+            background: #dcfce7;
+            border-left-color: #10b981;
+        }
+        .match-indicator {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
+        .content-section {
+            margin: 16px 0;
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .content-section h3 {
+            margin-top: 0;
+            color: #334155;
+            font-size: 16px;
+        }
+        .highlight {
+            background: #fef08a;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .persona-block {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        .persona-section {
+            background: rgba(255, 255, 255, 0.95);
+            margin: 16px 0;
+            padding: 20px;
+            border-radius: 12px;
+            color: #1a202c;
+        }
+        .persona-section-title {
+            color: #2d3748;
+            font-size: 18px;
+            margin: 0 0 12px 0;
+            font-weight: 600;
+        }
+        .persona-text {
+            color: #4a5568;
+            line-height: 1.6;
+            margin: 8px 0;
+        }
+        .persona-list {
+            margin: 12px 0;
+            padding-left: 0;
+            list-style: none;
+        }
+        .persona-list-item {
+            padding: 8px 0 8px 24px;
+            position: relative;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+        .persona-list-item::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #48bb78;
+            font-weight: bold;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Анализ персонализации для пользователя Виктор (ID: 1234567)</h1>
+    <p style="color: #64748b; font-size: 16px;">Проверка соответствия персонализированного контента ответам на анкету</p>
+
+    <div class="container">
+        <!-- Survey Data -->
+        <div class="panel">
+            <h2>📋 Данные анкеты</h2>
+            
+            <div class="survey-item">
+                <div class="survey-label">👤 Имя</div>
+                <div class="survey-value">Виктор</div>
+            </div>
+
+            <div class="survey-item match">
+                <div class="survey-label">🎯 Мотивация <span class="match-indicator">✓ Используется</span></div>
+                <div class="survey-value">
+                    <ul>
+                        <li>Профессиональное развитие</li>
+                        <li>Дополнительный доход</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="survey-item match">
+                <div class="survey-label">👥 Целевые клиенты <span class="match-indicator">✓ Используется</span></div>
+                <div class="survey-value">Офисные работники</div>
+            </div>
+
+            <div class="survey-item match">
+                <div class="survey-label">🎯 Навыки <span class="match-indicator">✓ Используется</span></div>
+                <div class="survey-value">Убрать головные боли и боли в шее</div>
+            </div>
+
+            <div class="survey-item match">
+                <div class="survey-label">😰 Страхи <span class="match-indicator">✓ Используется</span></div>
+                <div class="survey-value">
+                    <ul>
+                        <li>Навредить клиенту</li>
+                        <li>Неправильная техника</li>
+                        <li>Недостаток уверенности</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="survey-item match">
+                <div class="survey-label">🌟 WOW-результат <span class="match-indicator">✓ Используется</span></div>
+                <div class="survey-value">5 постоянных клиентов в конце курса</div>
+            </div>
+
+            <div class="survey-item match">
+                <div class="survey-label">🤝 Практика <span class="match-indicator">✓ Используется</span></div>
+                <div class="survey-value">На маме</div>
+            </div>
+        </div>
+
+        <!-- Matching Analysis -->
+        <div class="panel">
+            <h2>🔍 Соответствие контента</h2>
+
+            <div class="content-section">
+                <h3>✅ Имя используется</h3>
+                <p>"Здравствуйте, <span class="highlight">Виктор</span>!"</p>
+            </div>
+
+            <div class="content-section">
+                <h3>✅ Цель упомянута</h3>
+                <p>"...приближает вас к цели — <span class="highlight">пяти довольным клиентам</span>"</p>
+            </div>
+
+            <div class="content-section">
+                <h3>✅ Целевая аудитория учтена</h3>
+                <p>"...эффективно работать с <span class="highlight">офисными клиентами</span>, снимая их <span class="highlight">головные боли</span>"</p>
+            </div>
+
+            <div class="content-section">
+                <h3>✅ Страхи адресованы</h3>
+                <p>"Ваши опасения по поводу <span class="highlight">правильности техники</span> будут уменьшены"</p>
+            </div>
+
+            <div class="content-section">
+                <h3>✅ Практика на маме</h3>
+                <p>"Практикуя на <span class="highlight">вашей маме</span>, вы сможете отработать технику"</p>
+            </div>
+
+            <div class="content-section">
+                <h3>✅ Навыки (шея и голова)</h3>
+                <p>"...снять напряжение в <span class="highlight">шее и плечах</span>... снимая их <span class="highlight">головные боли</span>"</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rendered Content -->
+    <div class="panel full-width">
+        <h2>🎨 Персонализированный контент <span class="status status-success">Все элементы анкеты учтены</span></h2>
+        
+        <div id="personaContent">Загрузка...</div>
+    </div>
+
+    <script>
+        async function loadPersonalizedContent() {
+            try {
+                const response = await fetch('http://localhost:3000/api/persona/block', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: '1234567',
+                        lesson: '1',
+                        title: 'Урок 1'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.ok) {
+                    document.getElementById('personaContent').innerHTML = data.html;
+                } else {
+                    document.getElementById('personaContent').innerHTML = 
+                        '<p style="color: #dc2626;">Ошибка: ' + (data.error || 'Неизвестная ошибка') + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('personaContent').innerHTML = 
+                    '<p style="color: #dc2626;">Ошибка загрузки: ' + error.message + '</p>';
+            }
+        }
+
+        loadPersonalizedContent();
+    </script>
+</body>
+</html>
