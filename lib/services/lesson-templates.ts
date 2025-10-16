@@ -98,6 +98,9 @@ export async function loadLessonTemplate(
         if (format === 'new') {
           // Already in new format, return as-is
           return template as LessonTemplate;
+        } else if (format === 'emoji') {
+          // Transform emoji-key format to new format
+          return transformEmojiToNew(template);
         } else if (format === 'old') {
           // Transform old format to new
           console.log(`Transforming old format template for lesson ${lessonNumber}`);
@@ -140,11 +143,18 @@ function getDefaultTemplate(lessonNumber: number): LessonTemplate {
 }
 
 /**
- * Detects whether template uses old (5-field) or new (7-section) format
+ * Detects whether template uses old (5-field), new (7-section), or emoji-key format
  */
-export function detectTemplateFormat(template: any): 'old' | 'new' | 'unknown' {
+export function detectTemplateFormat(template: any): 'old' | 'new' | 'emoji' | 'unknown' {
   if (!template || typeof template !== 'object') {
     return 'unknown';
+  }
+  
+  // Check for emoji-key format
+  if (template['👋 Введение'] !== undefined || 
+      template['🔑 Ключевые моменты'] !== undefined ||
+      template['_мотивационная строка_'] !== undefined) {
+    return 'emoji';
   }
   
   // Check for new format fields
@@ -194,6 +204,21 @@ export function transformOldToNew(oldTemplate: LegacyLessonTemplate): LessonTemp
     practical_tips: practicalTips,
     homework,
     motivational_line: motivationalLine
+  };
+}
+
+/**
+ * Transforms emoji-key format to standard new format
+ */
+export function transformEmojiToNew(emojiTemplate: any): LessonTemplate {
+  return {
+    introduction: emojiTemplate['👋 Введение'] || '',
+    key_points: emojiTemplate['🔑 Ключевые моменты'] || [],
+    practical_tips: emojiTemplate['💡 Практические советы'] || [],
+    important_notes: emojiTemplate['⚠️ Важно'],
+    equipment_preparation: emojiTemplate['🧰 Инвентарь и подготовка'],
+    homework: emojiTemplate['📚 Домашнее задание'] || '',
+    motivational_line: emojiTemplate['_мотивационная строка_'] || ''
   };
 }
 
