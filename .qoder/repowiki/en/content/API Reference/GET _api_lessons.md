@@ -2,12 +2,22 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [route.ts](file://app/api/lessons/route.ts)
+- [route.ts](file://app/api/lessons/route.ts) - *Updated with CORS support in commit 45bebb8*
+- [http.ts](file://lib/utils/http.ts) - *Updated with CORS headers and handler in commit 45bebb8*
 - [lessons.ts](file://lib/api/lessons.ts)
 - [lesson.json](file://store/shvz/lessons/01/lesson.json)
 - [import-lessons.ts](file://scripts/import-lessons.ts)
 - [LESSON_MANAGEMENT.md](file://LESSON_MANAGEMENT.md)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Added CORS configuration details to Endpoint Overview and Caching Strategy sections
+- Updated Endpoint Overview diagram to include CORS headers in response
+- Added CORS_HEADERS and OPTIONS handler to code examples
+- Enhanced error handling section with CORS-related error scenarios
+- Updated client-side integration examples to show proper CORS handling
+- Added security considerations for CORS configuration
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -32,22 +42,25 @@ This document provides comprehensive documentation for the `GET /api/lessons` en
 ## Endpoint Overview
 The `GET /api/lessons` endpoint returns a list of all available lessons sorted by their lesson number in ascending order. It retrieves core lesson metadata including ID, title, summary, and associated descriptions from the Supabase database.
 
-The endpoint does not currently support filtering via query parameters in its implementation, despite potential client-side expectations. All lessons are returned in a single response, ordered by `lesson_number`.
+The endpoint now includes comprehensive CORS (Cross-Origin Resource Sharing) support, allowing requests from external domains. It responds to both GET and OPTIONS methods, with the OPTIONS method handling preflight requests. The implementation uses standardized CORS headers defined in `lib/utils/http.ts` to ensure compatibility with clients from different origins.
 
 ```mermaid
 flowchart TD
 Client["Client Application"] --> |GET /api/lessons| API["API Endpoint"]
+Client --> |OPTIONS /api/lessons| API
 API --> Supabase["Supabase Database"]
 Supabase --> |SELECT lessons| API
-API --> |JSON Response| Client
+API --> |JSON Response with CORS Headers| Client
+API --> |200 OK with CORS Headers| Client
 ```
 
 **Diagram sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
-- [lessons.ts](file://lib/api/lessons.ts#L9-L23)
+- [http.ts](file://lib/utils/http.ts#L1-L77)
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
+- [http.ts](file://lib/utils/http.ts#L1-L77)
 
 ## Query Parameters
 Currently, the `GET /api/lessons` endpoint does not implement query parameter filtering in its server-side logic. Despite potential client expectations for parameters like `lesson_number`, the endpoint returns all lessons without filtering.
@@ -170,30 +183,36 @@ getLessonByNumber(5).then(lesson => {
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
 
 ## Error Handling
-The endpoint implements standard error handling for database operations.
+The endpoint implements standard error handling for database operations with additional CORS support for error responses.
 
 ### Error Responses
 | Status Code | Scenario | Response Body |
 |-----------|---------|---------------|
-| 500 | Database query error | `{ "error": "error message" }` |
-| 200 | Success | `{ "lessons": [...] }` |
+| 500 | Database query error | `{ "error": "error message" }` with CORS headers |
+| 200 | Success | `{ "lessons": [...] }` with CORS headers |
+| 200 | OPTIONS preflight | Empty response with CORS headers |
 
-The endpoint does not return 404 errors for invalid lesson numbers since it always returns the complete list of lessons. Client-side code should handle cases where a specific lesson number is not found in the returned array.
+The endpoint does not return 404 errors for invalid lesson numbers since it always returns the complete list of lessons. Client-side code should handle cases where a specific lesson number is not found in the returned array. All error responses include CORS headers to ensure client applications can receive error information regardless of origin.
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
+- [http.ts](file://lib/utils/http.ts#L1-L77)
 
 ## Caching Strategy
-The documentation does not specify explicit HTTP caching headers or server-side caching mechanisms for this endpoint. However, given that lesson metadata is relatively static, clients are encouraged to implement caching strategies:
+The endpoint includes HTTP caching headers for improved performance. The CORS configuration includes `Access-Control-Max-Age: 86400`, which caches preflight requests for 24 hours, reducing the number of OPTIONS requests to the server.
+
+Clients are encouraged to implement additional caching strategies:
 
 - Cache responses for a reasonable duration (e.g., 5-15 minutes)
-- Use ETag or Last-Modified headers if implemented by the server
+- Utilize the 24-hour preflight caching to minimize OPTIONS requests
 - Implement client-side memory caching for frequently accessed lesson data
+- Consider using ETag or Last-Modified headers if implemented in future versions
 
-No Redis or in-memory caching is evident in the current implementation.
+The current implementation does not use Redis or in-memory caching, relying instead on HTTP-level caching and Supabase query optimization.
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
+- [http.ts](file://lib/utils/http.ts#L1-L77)
 
 ## Client-Side Integration Examples
 ### TypeScript Example
@@ -215,7 +234,14 @@ interface LessonsResponse {
 }
 
 async function fetchLessons(): Promise<LessonsResponse> {
-  const response = await fetch('/api/lessons');
+  const response = await fetch('/api/lessons', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    // Credentials included if needed for authentication
+    credentials: 'include'
+  });
   
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -230,8 +256,15 @@ async function fetchLessons(): Promise<LessonsResponse> {
 const lessonApi = {
   async getAll() {
     try {
-      const response = await fetch('/api/lessons');
+      const response = await fetch('/api/lessons', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (!response.ok) throw new Error(`Error: ${response.status}`);
+      
       return await response.json();
     } catch (error) {
       console.error('Failed to fetch lessons:', error);
@@ -252,6 +285,7 @@ const specificLesson = await lessonApi.findByNumber(3);
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
 - [lessons.ts](file://lib/api/lessons.ts#L9-L23)
+- [http.ts](file://lib/utils/http.ts#L1-L77)
 
 ## Performance Considerations
 The current implementation retrieves all lessons in a single query without pagination. With only 12 lessons in the system, this approach is performant. However, considerations for future scaling include:
@@ -261,6 +295,7 @@ The current implementation retrieves all lessons in a single query without pagin
 - **Database Indexing**: The `lesson_number` field should be indexed for efficient sorting
 - **Response Size**: Minimal payload size due to limited lesson count
 - **Query Optimization**: Simple SELECT query with ordering on indexed column
+- **CORS Optimization**: Preflight requests are cached for 24 hours, reducing server load
 
 For larger lesson sets, implementing pagination (e.g., `?page=1&limit=10`) or cursor-based iteration would be recommended to improve performance and reduce memory usage on client devices.
 
@@ -268,15 +303,17 @@ For larger lesson sets, implementing pagination (e.g., `?page=1&limit=10`) or cu
 flowchart TD
 Start["Start Request"] --> Query["Query Supabase<br>SELECT * FROM lessons<br>ORDER BY lesson_number"]
 Query --> Check["Check for Errors"]
-Check --> |Error| Return500["Return 500 Response"]
+Check --> |Error| Return500["Return 500 Response with CORS Headers"]
 Check --> |Success| Format["Format JSON Response<br>{ lessons: [...] }"]
-Format --> Return200["Return 200 Response"]
+Format --> AddCORS["Add CORS Headers"]
+AddCORS --> Return200["Return 200 Response"]
 Return500 --> End
 Return200 --> End
 ```
 
 **Diagram sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
+- [http.ts](file://lib/utils/http.ts#L1-L77)
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)

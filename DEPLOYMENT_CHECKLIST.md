@@ -1,9 +1,10 @@
-# 🚀 Deployment Checklist - CORS Fix
+# 🚀 Deployment Checklist - Complete Fix
 
 ## Измененные файлы
 
 ### Основные исправления
 - ✅ `lib/utils/http.ts` - обновлены CORS headers и исправлен createOptionsHandler
+- ✅ `lib/services/html-formatter.ts` - **НОВОЕ**: исправлена ссылка на анкету + автоконвертация форматов
 - ✅ `next.config.ts` - добавлены глобальные CORS headers
 - ✅ `vercel.json` - добавлены CORS headers на уровне CDN
 
@@ -14,8 +15,13 @@
 - ✅ `app/api/lessons/route.ts` - добавлены CORS headers и OPTIONS
 
 ### Документация
-- ✅ `CORS_FIX_REPORT.md` - полный отчет об исправлении
+- ✅ `CORS_FIX_REPORT.md` - полный отчет об исправлении CORS
+- ✅ `USER_FIX_REPORT.md` - **НОВОЕ**: отчет о фиксе для пользователя 21179358
 - ✅ `DEPLOYMENT_CHECKLIST.md` - этот файл
+
+### Утилиты
+- ✅ `scripts/check-and-fix-user.ts` - **НОВОЕ**: проверка и генерация персонализаций
+- ✅ `scripts/inspect-personalization.ts` - **НОВОЕ**: просмотр структуры данных
 
 ---
 
@@ -38,21 +44,28 @@ git status
 
 # 2. Добавить все изменения
 git add lib/utils/http.ts
+git add lib/services/html-formatter.ts
 git add next.config.ts
 git add vercel.json
 git add app/api/survey/route.ts
 git add app/api/lessons/route.ts
+git add scripts/check-and-fix-user.ts
+git add scripts/inspect-personalization.ts
 git add CORS_FIX_REPORT.md
+git add USER_FIX_REPORT.md
 git add DEPLOYMENT_CHECKLIST.md
 
 # 3. Закоммитить
-git commit -m "fix: add CORS headers for cross-origin API requests
+git commit -m "fix: CORS headers, survey link, and personalization format compatibility
 
 - Updated CORS headers to include all necessary methods and headers
 - Fixed createOptionsHandler to return a function instead of object
 - Added CORS to /api/survey and /api/lessons endpoints
 - Configured global CORS in next.config.ts and vercel.json
-- Fixes CORS blocking from shkolamasterov.online domain"
+- Fixed survey link in default lesson template to point to GetCourse
+- Added automatic old-to-new format conversion for personalizations
+- Fixes CORS blocking from shkolamasterov.online domain
+- Fixes personalization display for user 21179358"
 
 # 4. Отправить на remote (автодеплой на Vercel)
 git push origin main

@@ -2,24 +2,25 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts) - *Refactored in commit 2c997b6*
-- [openai.ts](file://lib/services/openai.ts) - *Updated in commit 2c997b6*
-- [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated in commit 2c997b6*
-- [html-formatter.ts](file://lib/services/html-formatter.ts) - *Updated in commit 2c997b6*
-- [personalization.ts](file://lib/services/personalization.ts) - *Updated in commit 2c997b6*
+- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts) - *Updated in commit cad6b20*
+- [block/route.ts](file://app/api/persona/block/route.ts) - *Updated in commit cad6b20*
+- [html-formatter.ts](file://lib/services/html-formatter.ts) - *Added formatDefaultTemplateContent in commit cad6b20*
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated in commit cad6b20*
+- [openai.ts](file://lib/services/openai.ts) - *Updated in commit cad6b20*
+- [personalization.ts](file://lib/services/personalization.ts) - *Updated in commit cad6b20*
 - [server.ts](file://lib/supabase/server.ts)
 - [lesson.json](file://store/shvz/lessons/01/lesson.json)
 </cite>
 
 ## Update Summary
 **Changes Made**   
-- Updated workflow overview to reflect modularized service architecture
-- Revised template loading strategy to document service-based implementation
-- Enhanced AI prompt engineering section with complete prompt template
-- Updated content formatting logic with current HTML structure
-- Added performance considerations for service layer interactions
-- Improved error handling documentation with service-specific details
-- Updated API integration section with service function references
+- Added comprehensive documentation for default template functionality when user profiles are missing
+- Updated error handling section to reflect new fallback behavior with default templates
+- Enhanced workflow overview to include default template rendering path
+- Added new section on default template formatting logic
+- Updated API integration details for both personalize-template and block endpoints
+- Improved content formatting logic section with new default template structure
+- Added new diagram for default template rendering flow
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -27,14 +28,15 @@
 3. [Template Loading Strategy](#template-loading-strategy)
 4. [AI Prompt Engineering](#ai-prompt-engineering)
 5. [Content Formatting Logic](#content-formatting-logic)
-6. [Performance Considerations](#performance-considerations)
-7. [Error Handling and Fallbacks](#error-handling-and-fallbacks)
-8. [API Integration](#api-integration)
-9. [Examples and Usage](#examples-and-usage)
-10. [Customization Guide](#customization-guide)
+6. [Default Template Rendering](#default-template-rendering)
+7. [Performance Considerations](#performance-considerations)
+8. [Error Handling and Fallbacks](#error-handling-and-fallbacks)
+9. [API Integration](#api-integration)
+10. [Examples and Usage](#examples-and-usage)
+11. [Customization Guide](#customization-guide)
 
 ## Introduction
-The AI-powered personalization engine is the core component of the persona application, responsible for delivering customized lesson content based on user profiles. This system integrates multiple services including Supabase for data storage, OpenAI's GPT-4o-mini for content generation, and a file-based template system to create personalized learning experiences. The engine has been recently refactored to use a modular service architecture, extracting core functionality into reusable components in the `lib/services` directory.
+The AI-powered personalization engine is the core component of the persona application, responsible for delivering customized lesson content based on user profiles. This system integrates multiple services including Supabase for data storage, OpenAI's GPT-4o-mini for content generation, and a file-based template system to create personalized learning experiences. The engine has been recently enhanced with robust fallback mechanisms, including the ability to serve default lesson templates when user profiles are unavailable, ensuring users always receive meaningful content.
 
 **Section sources**
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L45)
@@ -48,6 +50,11 @@ The personalization engine follows a six-step process to generate customized con
 4. **Send context to AI model**: Uses `personalizeLesson` service to combine template and profile data for GPT-4o-mini processing
 5. **Process AI response**: Parses and validates generated JSON content with fallback mechanisms
 6. **Generate HTML output**: Formats personalized content using `formatPersonalizedContent` service
+
+When a user profile is not found, the engine follows an alternative path:
+- Load the base template using `loadLessonTemplate`
+- Format the default template content using `formatDefaultTemplateContent`
+- Return HTML with a call-to-action to complete the user survey
 
 ```mermaid
 sequenceDiagram
@@ -77,6 +84,10 @@ Services-->>API : Success
 API->>Services : formatPersonalizedContent(content)
 Services-->>API : HTML string
 API->>Client : Return HTML and cached flag
+Note over API : If profile not found
+API->>Services : formatDefaultTemplateContent(template, lessonInfo)
+Services-->>API : Default HTML with CTA
+API->>Client : Return default HTML
 ```
 
 **Diagram sources**
@@ -117,11 +128,11 @@ ReturnDefault --> End
 ```
 
 **Diagram sources**
-- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L49-L87)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
 
 **Section sources**
-- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L49-L87)
-- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L92-L100)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L123-L140)
 
 ## AI Prompt Engineering
 The personalization engine employs a structured prompt engineering approach to ensure consistent and relevant AI-generated content. The prompt template is designed to guide GPT-4o-mini in creating personalized lesson content based on user profile data.
@@ -162,26 +173,55 @@ end
 ```
 
 **Diagram sources**
-- [openai.ts](file://lib/services/openai.ts#L45-L82)
+- [openai.ts](file://lib/services/openai.ts#L139-L208)
 
 **Section sources**
-- [openai.ts](file://lib/services/openai.ts#L45-L82)
+- [openai.ts](file://lib/services/openai.ts#L139-L208)
 
 ## Content Formatting Logic
 The engine transforms AI-generated JSON content into structured HTML for frontend display using the `formatPersonalizedContent` service. The formatting function checks for the presence of each content field and conditionally includes corresponding HTML sections.
 
 The generated HTML includes:
-- **Summary section**: Brief lesson overview
-- **Previous lessons**: Content if available
-- **Why watch**: Motivational content based on user goals
-- **Quick action**: Immediate actionable item
-- **Homework**: 20-minute assignment adapted to practice model
-- **Social sharing**: Content for social media sharing
+- **Introduction section**: Brief lesson overview with personal addressing
+- **Key points**: 4-6 bullet points summarizing lesson content
+- **Practical tips**: 3-5 actionable instruction points
+- **Important notes**: Contraindications and safety information (conditional)
+- **Equipment preparation**: Equipment list and setup instructions (conditional)
+- **Homework**: 1-2 sentence assignment adapted to practice model
+- **Motivational line**: Inspirational closing statement
 
 Each section is wrapped in appropriate CSS classes for styling, with conditional rendering ensuring only available content is displayed. The output is wrapped in a "persona-block" container for consistent presentation. The service uses template literals with conditional expressions to generate the final HTML structure.
 
 **Section sources**
-- [html-formatter.ts](file://lib/services/html-formatter.ts#L5-L58)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L5-L92)
+
+## Default Template Rendering
+When a user profile is not found, the engine serves a default template with a call-to-action to complete the survey. This functionality is implemented through the `formatDefaultTemplateContent` function in the HTML formatter service.
+
+The default template rendering process:
+1. Load the base lesson template using `loadLessonTemplate`
+2. Format the template content with `formatDefaultTemplateContent`
+3. Include a prominent survey CTA section with direct link
+4. Return HTML with default styling and educational content
+
+The default template preserves all educational content from the base template while adding a header section that explains the benefits of personalization and provides a direct link to the survey form. This ensures users receive valuable lesson content while being encouraged to complete their profile for full personalization.
+
+```mermaid
+flowchart TD
+A[User Profile Not Found] --> B[Load Base Template]
+B --> C[Format Default Content]
+C --> D[Add Survey CTA Header]
+D --> E[Preserve Template Sections]
+E --> F[Return Default HTML]
+```
+
+**Diagram sources**
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L143-L223)
+- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L80-L90)
+
+**Section sources**
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L143-L223)
+- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L80-L90)
 
 ## Performance Considerations
 The personalization engine incorporates several performance optimization strategies:
@@ -208,7 +248,7 @@ The system implements response caching through the `flush` parameter. When `flus
 The engine implements comprehensive error handling and fallback mechanisms:
 
 ### User Profile Not Found
-When a user profile is not found, the system returns a fallback HTML message prompting the user to complete their survey, including a direct link to the survey form with their user ID.
+When a user profile is not found, the system returns a default template content with a survey call-to-action, rather than a generic error message. This ensures users receive educational content while being prompted to complete their profile.
 
 ### Lesson Not Found
 If the requested lesson number doesn't exist in the database, an error message is returned indicating the lesson was not found.
@@ -222,7 +262,7 @@ If the OpenAI API call fails, the system gracefully falls back to returning the 
 ```mermaid
 flowchart TD
 A[Start Request] --> B{User Profile Found?}
-B --> |No| C[Return survey prompt]
+B --> |No| C[Return default template with survey CTA]
 B --> |Yes| D{Lesson Found?}
 D --> |No| E[Return lesson not found]
 D --> |Yes| F{Template Found?}
@@ -239,7 +279,7 @@ H --> |Yes| J[Return personalized content]
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L60-L84)
 
 ## API Integration
-The personalization engine exposes a RESTful API endpoint and integrates with external services:
+The personalization engine exposes RESTful API endpoints and integrates with external services:
 
 ### Main Endpoint
 **POST** `/api/persona/personalize-template`
@@ -262,6 +302,28 @@ Response:
 }
 ```
 
+### Block Endpoint
+**POST** `/api/persona/block`
+
+Request body:
+```json
+{
+  "user_id": "string",
+  "lesson": "string",
+  "title": "string",
+  "flush": "boolean (optional)"
+}
+```
+
+Response:
+```json
+{
+  "ok": "boolean",
+  "html": "string",
+  "cached": "boolean"
+}
+```
+
 ### External Service Integration
 - **Supabase**: Used for user profile and lesson data storage/retrieval
 - **OpenAI**: GPT-4o-mini model for content personalization
@@ -270,18 +332,26 @@ Response:
 
 **Section sources**
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L45)
+- [block/route.ts](file://app/api/persona/block/route.ts#L1-L45)
 - [personalization.ts](file://lib/services/personalization.ts#L20-L47)
 
 ## Examples and Usage
 ### Input Template Example
 ```json
 {
-  "number": 1,
-  "title": "Урок введение.",
-  "description": "Урок введение.",
-  "duration": "6 минут",
-  "status": "active",
-  "created_at": "2024-10-08"
+  "introduction": "Learn the fundamentals of massage technique",
+  "key_points": [
+    "Understand basic hand positioning",
+    "Learn pressure control techniques",
+    "Master client communication"
+  ],
+  "practical_tips": [
+    "Start with light pressure",
+    "Check in with your client",
+    "Maintain proper body alignment"
+  ],
+  "homework": "Practice basic strokes for 15 minutes",
+  "motivational_line": "Every session brings you closer to mastery"
 }
 ```
 
@@ -305,7 +375,7 @@ The AI generates a JSON response that is formatted into HTML containing personal
 
 **Section sources**
 - [lesson.json](file://store/shvz/lessons/01/lesson.json#L1-L8)
-- [openai.ts](file://lib/services/openai.ts#L88-L137)
+- [openai.ts](file://lib/services/openai.ts#L139-L208)
 
 ## Customization Guide
 ### Modifying AI Prompts
@@ -324,9 +394,9 @@ To support additional content fields:
 
 ### Performance Tuning
 - Adjust `temperature` parameter (currently 0.7) for more/less creative outputs
-- Modify `max_tokens` limit (currently 1000) based on content length requirements
+- Modify `max_tokens` limit (currently 1500) based on content length requirements
 - Implement additional caching layers as needed
 
 **Section sources**
-- [openai.ts](file://lib/services/openai.ts#L45-L82)
-- [html-formatter.ts](file://lib/services/html-formatter.ts#L5-L58)
+- [openai.ts](file://lib/services/openai.ts#L139-L208)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L5-L92)

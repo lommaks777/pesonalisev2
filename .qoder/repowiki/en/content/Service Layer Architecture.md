@@ -5,10 +5,18 @@
 - [lib/services/personalization.ts](file://lib/services/personalization.ts)
 - [lib/services/profile.ts](file://lib/services/profile.ts)
 - [lib/services/openai.ts](file://lib/services/openai.ts)
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts)
-- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts)
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated to support emoji-key format*
+- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts) - *Added default template formatting*
 - [app/api/survey/route.ts](file://app/api/survey/route.ts)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated Lesson Templates Service section to include new emoji-key format support
+- Added new section for Default Template Formatting functionality
+- Enhanced Service Interfaces with updated data types
+- Updated Practical Examples with new formatting usage
+- Added troubleshooting entry for template format issues
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -36,8 +44,8 @@ The service layer is organized into five primary modules, each responsible for a
 - **Personalization Service**: Manages storage and retrieval of personalized lesson content
 - **Profile Service**: Handles user profile creation, updates, and data access
 - **OpenAI Service**: Orchestrates AI-driven personalization using GPT models
-- **Lesson Templates Service**: Loads and manages lesson template data from the file system
-- **HTML Formatter Service**: Converts structured content into styled HTML blocks
+- **Lesson Templates Service**: Loads and manages lesson template data from the file system with support for multiple formats
+- **HTML Formatter Service**: Converts structured content into styled HTML blocks with fallback rendering
 
 These services are designed to be stateless, composable, and resilient to failures, particularly when integrating with external systems like Supabase and OpenAI.
 
@@ -115,26 +123,32 @@ Key functions:
 - [lib/services/openai.ts](file://lib/services/openai.ts#L88-L137)
 
 ### Lesson Templates Service
-Loads lesson templates from JSON files stored in the `store/shvz` directory. Supports flexible filename patterns and provides fallback templates when files are missing.
+Loads lesson templates from JSON files stored in the `store/shvz` directory. Supports multiple filename patterns and template formats, including legacy, new, and emoji-key formats. Provides fallback templates when files are missing.
 
 Key functions:
-- `loadLessonTemplate()`: Reads and parses template files with multiple naming patterns
+- `loadLessonTemplate()`: Reads and parses template files with format detection and transformation
+- `detectTemplateFormat()`: Identifies template format (old, new, emoji, or unknown)
+- `transformEmojiToNew()`: Converts emoji-key format templates to standard format
 - `getLessonTemplateId()`: Maps lesson numbers to UUIDs via a static lookup table
 - `getDefaultTemplate()`: Provides default content when templates are unavailable
 
 **Section sources**
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L49-L87)
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120) - *Updated to support multiple template formats*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L147-L174) - *Format detection logic*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L212-L222) - *Emoji format transformation*
 
 ### HTML Formatter Service
-Transforms structured personalization data into styled HTML blocks for rendering in the frontend. Includes specialized templates for alerts and prompts.
+Transforms structured personalization data into styled HTML blocks for rendering in the frontend. Includes specialized templates for alerts and default content rendering when personalization is unavailable.
 
 Key functions:
 - `formatPersonalizedContent()`: Generates full HTML block from personalization data
+- `formatDefaultTemplateContent()`: Renders default lesson templates with survey CTA
 - `formatSurveyAlert()`: Creates call-to-action for users who haven't completed the survey
 - `formatPersonalizationUnavailableAlert()`: Shows fallback message when no personalization exists
 
 **Section sources**
-- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts#L5-L75)
+- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts#L20-L88) - *Personalized content formatting*
+- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts#L143-L223) - *Default template formatting with CTA*
 
 ## Service Interfaces
 
@@ -167,12 +181,27 @@ interface Profile {
 #### PersonalizedContent
 ```typescript
 interface PersonalizedContent {
-  summary_short: string;
-  why_watch: string;
-  quick_action: string;
-  social_share: string;
-  homework_20m: string;
-  prev_lessons?: string;
+  introduction: string;
+  key_points: string[];
+  practical_tips: string[];
+  important_notes?: string[];
+  equipment_preparation?: string;
+  homework: string;
+  motivational_line: string;
+}
+```
+
+#### LessonTemplate
+```typescript
+interface LessonTemplate {
+  introduction?: string;
+  key_points?: string[];
+  practical_tips?: string[];
+  important_notes?: string[];
+  equipment_preparation?: string;
+  homework?: string;
+  motivational_line?: string;
+  [key: string]: any;
 }
 ```
 
@@ -191,7 +220,8 @@ interface SurveyData {
 **Section sources**
 - [lib/services/personalization.ts](file://lib/services/personalization.ts#L3-L15)
 - [lib/services/profile.ts](file://lib/services/profile.ts#L3-L22)
-- [lib/services/openai.ts](file://lib/services/openai.ts#L18-L44)
+- [lib/services/openai.ts](file://lib/services/openai.ts#L18-L26) - *Updated PersonalizedContent interface*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L22-L31) - *LessonTemplate interface*
 
 ## Integration Patterns
 
@@ -229,7 +259,7 @@ API-->>Client : Success Response
 **Diagram sources**
 - [app/api/survey/route.ts](file://app/api/survey/route.ts#L15-L130)
 - [lib/services/profile.ts](file://lib/services/profile.ts#L52-L108)
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L49-L87)
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
 - [lib/services/openai.ts](file://lib/services/openai.ts#L88-L137)
 - [lib/services/personalization.ts](file://lib/services/personalization.ts#L20-L47)
 
@@ -242,13 +272,13 @@ All services implement consistent error handling:
 
 ### Resilience Features
 - OpenAI service returns fallback content on API failure
-- Template loader tries multiple filename patterns
+- Template loader tries multiple filename patterns and supports format transformation
 - Batch operations track individual item success/failure
 - Database operations use upsert patterns to avoid duplicates
 
 **Section sources**
 - [lib/services/openai.ts](file://lib/services/openai.ts#L100-L137)
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L60-L87)
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120) - *Enhanced resilience with format detection*
 - [lib/services/personalization.ts](file://lib/services/personalization.ts#L90-L120)
 
 ## Practical Examples
@@ -299,7 +329,7 @@ console.log("Personalized content:", personalization);
 ```
 
 **Section sources**
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L49-L87)
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
 - [lib/services/openai.ts](file://lib/services/openai.ts#L88-L137)
 
 ### Rendering Personalized HTML
@@ -311,7 +341,23 @@ document.getElementById("content").innerHTML = html;
 ```
 
 **Section sources**
-- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts#L5-L58)
+- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts#L20-L88)
+
+### Rendering Default Template with CTA
+```typescript
+import { loadLessonTemplate } from "@/lib/services/lesson-templates";
+import { formatDefaultTemplateContent } from "@/lib/services/html-formatter";
+
+const template = await loadLessonTemplate(1);
+const lessonInfo = { lesson_number: 1, title: "Introduction to Massage" };
+
+const html = formatDefaultTemplateContent(template, lessonInfo);
+document.getElementById("content").innerHTML = html;
+```
+
+**Section sources**
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
+- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts#L143-L223) - *New default template formatting*
 
 ## Troubleshooting Guide
 
@@ -357,7 +403,22 @@ document.getElementById("content").innerHTML = html;
 - Ensure correct file permissions
 
 **Section sources**
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L49-L87)
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
+
+#### Issue: Template Format Not Recognized
+**Symptoms**: Template content not properly transformed or displayed  
+**Causes**: 
+- Using unsupported template format
+- Missing required fields in template
+- Incorrect emoji-key format syntax  
+**Solutions**: 
+- Verify template follows one of the supported formats (old, new, or emoji-key)
+- Check that emoji-key templates use correct emoji prefixes
+- Use `detectTemplateFormat()` to verify format detection
+
+**Section sources**
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L147-L174) - *Format detection*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L212-L222) - *Format transformation*
 
 #### Issue: Profile Not Found
 **Symptoms**: `getProfileByUserId()` returns null  
@@ -379,7 +440,7 @@ The Service Layer Architecture provides a robust foundation for user personaliza
 Key strengths include:
 - Clear separation of concerns
 - Comprehensive error handling
-- Flexible template system
+- Flexible template system with multiple format support
 - Scalable batch operations
 - Consistent interface patterns
 

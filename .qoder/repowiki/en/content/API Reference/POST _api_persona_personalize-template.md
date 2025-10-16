@@ -2,13 +2,22 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [route.ts](file://app/api/persona/personalize-template/route.ts)
-- [openai.ts](file://lib/openai.ts)
-- [server.ts](file://lib/supabase/server.ts)
-- [lesson-block-template.html](file://public/getcourse/lesson-block-template.html)
-- [lesson.json](file://store/shvz/lessons/01/lesson.json)
-- [PERSONALIZATION_API.md](file://PERSONALIZATION_API.md)
+- [route.ts](file://app/api/persona/personalize-template/route.ts) - *Updated with default template fallback and CORS support*
+- [html-formatter.ts](file://lib/services/html-formatter.ts) - *Added formatDefaultTemplateContent function*
+- [http.ts](file://lib/utils/http.ts) - *Added CORS_HEADERS and OPTIONS handler*
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Template loading and formatting logic*
+- [openai.ts](file://lib/services/openai.ts) - *AI personalization service*
+- [lesson.json](file://store/shvz/lessons/01/lesson.json) - *Example lesson template*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated error handling section to reflect new default template fallback behavior
+- Added documentation for `formatDefaultTemplateContent` function and its usage
+- Enhanced CORS documentation with new OPTIONS handler and headers
+- Updated workflow diagram to include default template path
+- Modified status codes section to clarify 200 responses for fallback scenarios
+- Added new section sources reflecting recent code changes
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -44,11 +53,13 @@ The request must be sent with `Content-Type: application/json` header. The `user
 
 The endpoint supports CORS with the following headers:
 - `Access-Control-Allow-Origin: *`
-- `Access-Control-Allow-Methods: POST, OPTIONS`
-- `Access-Control-Allow-Headers: Content-Type`
+- `Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS`
+- `Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With`
+- `Access-Control-Max-Age: 86400` (24 hours)
 
 **Section sources**
 - [route.ts](file://app/api/persona/personalize-template/route.ts#L15-L45)
+- [http.ts](file://lib/utils/http.ts#L6-L11)
 
 ## Response Format
 
@@ -63,11 +74,13 @@ The API returns a JSON response with the following structure:
 ```
 
 The `html` field contains the personalized lesson content formatted as HTML with CSS classes for styling. The content includes various sections such as:
-- `summary_short`: Personalized short summary of the lesson
-- `why_watch`: Explanation of why the lesson is relevant to the user's goals
-- `quick_action`: Immediate action item tailored to the user
-- `homework_20m`: 20-minute homework assignment adapted to the user's practice model
-- `social_share`: Suggested social media post content
+- `introduction`: Personalized introduction to the lesson
+- `key_points`: Key learning points adapted to the user's goals
+- `practical_tips`: Practical advice considering the user's fears and practice model
+- `important_notes`: Important considerations and contraindications
+- `equipment_preparation`: Equipment requirements tailored to practice model
+- `homework`: Personalized homework assignment
+- `motivational_line`: Motivational message connected to expected results
 
 The response also includes a `cached` boolean field indicating whether the content was served from cache (when `flush` is false) or newly generated. All HTML output uses the `persona-*` CSS class namespace for styling consistency.
 
@@ -75,7 +88,7 @@ The HTML structure follows a consistent pattern with sections wrapped in `person
 
 **Section sources**
 - [route.ts](file://app/api/persona/personalize-template/route.ts#L135-L145)
-- [lesson-block-template.html](file://public/getcourse/lesson-block-template.html#L0-L60)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L1-L224)
 
 ## Workflow Overview
 
@@ -83,15 +96,15 @@ The HTML structure follows a consistent pattern with sections wrapped in `person
 flowchart TD
 A[Client Request] --> B{Validate Parameters}
 B --> |Missing user_id or lesson_number| C[Return 400 Error]
-B --> |Valid| D[Fetch User Profile]
-D --> E{Profile Exists?}
+B --> |Valid| D[Fetch Lesson Metadata]
+D --> E{Lesson Found?}
 E --> |No| F[Return HTML Alert]
-E --> |Yes| G[Fetch Lesson Metadata]
-G --> H{Lesson Found?}
-H --> |No| I[Return HTML Alert]
-H --> |Yes| J[Load Template File]
-J --> K{Template Exists?}
-K --> |No| L[Return HTML Alert]
+E --> |Yes| G[Load Template File]
+G --> H{Template Exists?}
+H --> |No| I[Return Default Template]
+H --> |Yes| J[Fetch User Profile]
+J --> K{Profile Exists?}
+K --> |No| L[Return Default Template]
 K --> |Yes| M[Personalize via GPT-4o-mini]
 M --> N{AI Success?}
 N --> |No| O[Use Original Template]
@@ -103,11 +116,11 @@ Q --> R[Return Response]
 **Diagram sources**
 - [route.ts](file://app/api/persona/personalize-template/route.ts#L47-L145)
 
-The workflow begins with parameter validation, ensuring both `user_id` and `lesson_number` are provided. The system then retrieves the user's profile from Supabase, including their survey responses which contain critical personalization data such as motivation, target clients, desired skills, fears, expected results, and practice model.
+The workflow begins with parameter validation, ensuring both `user_id` and `lesson_number` are provided. The system then retrieves the lesson metadata from Supabase, followed by loading the lesson template from the file system using the `loadLessonTemplate` function.
 
-If the user profile is not found, the endpoint returns a fallback HTML block prompting the user to complete their survey. Similarly, if the requested lesson is not found in the database, an appropriate alert is returned.
+If the lesson is not found in the database, an appropriate alert is returned. When the user profile is not found, the system now returns a default template formatted with `formatDefaultTemplateContent` instead of a survey prompt, providing immediate educational value while still encouraging profile completion.
 
-The system locates the lesson template by mapping the lesson number to a UUID via the `getLessonId` function, then searches for the corresponding JSON file in the `store/shvz` directory using multiple filename patterns to ensure compatibility with existing templates.
+The system locates the lesson template by mapping the lesson number to a UUID via the `getLessonTemplateId` function, then searches for the corresponding JSON file in the `store/shvz` directory using multiple filename patterns to ensure compatibility with existing templates.
 
 Once the template is loaded, the personalization process invokes GPT-4o-mini through the OpenAI client with a detailed prompt that includes the template, user survey data, and specific instructions for personalization. The AI model is instructed to address the user by name, consider their motivations and goals, address their fears, adapt homework to their practice model, and connect content to their expected results.
 
@@ -115,7 +128,8 @@ After personalization, the result is saved to Supabase in the `personalized_less
 
 **Section sources**
 - [route.ts](file://app/api/persona/personalize-template/route.ts#L47-L145)
-- [openai.ts](file://lib/openai.ts#L1-L8)
+- [openai.ts](file://lib/services/openai.ts#L1-L8)
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
 
 ## Error Handling
 
@@ -126,17 +140,17 @@ flowchart TD
 A[Client Request] --> B[Validation Errors]
 B --> C[400 Bad Request]
 A --> D[Data Retrieval Errors]
-D --> E[User Profile Not Found]
-D --> F[Lesson Not Found]
+D --> E[Lesson Not Found]
+E --> F[Return Fallback HTML]
 D --> G[Template File Missing]
-E --> H[Return Fallback HTML]
-F --> H
-G --> H
-A --> I[AI Processing Errors]
-I --> J[OpenAI API Failure]
-J --> K[Return Original Template]
-A --> L[Server Errors]
-L --> M[500 Internal Server Error]
+G --> H[Return Default Template]
+D --> I[User Profile Not Found]
+I --> J[Return Default Template]
+A --> K[AI Processing Errors]
+K --> L[OpenAI API Failure]
+L --> M[Return Original Template]
+A --> N[Server Errors]
+N --> O[500 Internal Server Error]
 ```
 
 **Diagram sources**
@@ -146,7 +160,10 @@ The system handles several error scenarios gracefully:
 
 1. **Validation errors**: When required parameters are missing, the endpoint returns a 400 status code with a descriptive error message.
 
-2. **Data retrieval issues**: If the user profile, lesson metadata, or template file cannot be found, the system returns a success response (200) with fallback HTML content that informs the user of the issue and provides appropriate guidance (e.g., prompting to complete their survey).
+2. **Data retrieval issues**: 
+   - If the lesson metadata cannot be found, the system returns a success response (200) with fallback HTML content.
+   - If the user profile is not found, the system returns the default template content with a survey CTA banner using `formatDefaultTemplateContent`.
+   - If the template file is missing, a default template structure is generated.
 
 3. **AI processing failures**: If the OpenAI API call fails, the system catches the error and returns the original template content instead of failing completely. This ensures that users always receive some content, even when the personalization service is temporarily unavailable.
 
@@ -156,6 +173,7 @@ All errors are logged to the server console for monitoring and debugging purpose
 
 **Section sources**
 - [route.ts](file://app/api/persona/personalize-template/route.ts#L147-L294)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L143-L223)
 
 ## Example Requests
 
@@ -206,15 +224,15 @@ if (result.ok && result.html) {
 
 ### Handling CORS and JSON Responses
 
-When integrating this API, ensure your client handles CORS properly. The endpoint supports cross-origin requests from any domain (`Access-Control-Allow-Origin: *`). For production environments, consider implementing more restrictive CORS policies.
+When integrating this API, ensure your client handles CORS properly. The endpoint supports cross-origin requests from any domain (`Access-Control-Allow-Origin: *`) and includes comprehensive CORS headers. For production environments, consider implementing more restrictive CORS policies.
 
-Always check the `ok` field in the response before processing the `html` content. Even when the HTTP status is 200, the `ok` field may be false in certain error scenarios.
+The endpoint now properly handles OPTIONS preflight requests through the `createOptionsHandler` function, ensuring smooth CORS implementation. Always check the `ok` field in the response before processing the `html` content. Even when the HTTP status is 200, the `ok` field may be false in certain error scenarios.
 
 The response is always JSON, even when returning HTML content. Parse the response with `response.json()` and verify the structure before injecting HTML into the DOM to prevent XSS vulnerabilities.
 
 **Section sources**
 - [route.ts](file://app/api/persona/personalize-template/route.ts#L1-L294)
-- [lesson-block-template.html](file://public/getcourse/lesson-block-template.html#L0-L60)
+- [http.ts](file://lib/utils/http.ts#L69-L76)
 
 ## Authentication and Security
 

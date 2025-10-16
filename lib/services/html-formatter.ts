@@ -17,17 +17,51 @@ function escapeHtml(text: string): string {
 
 /**
  * Generates persona-block HTML from personalized content (new 7-section format)
+ * Automatically detects and converts old 5-field format to new format
  */
 export function formatPersonalizedContent(content: PersonalizedContent | Record<string, unknown>): string {
   const typedContent = content as PersonalizedContent;
   
-  const introduction = typedContent.introduction || "";
-  const keyPoints = typedContent.key_points || [];
-  const practicalTips = typedContent.practical_tips || [];
-  const importantNotes = typedContent.important_notes;
-  const equipmentPreparation = typedContent.equipment_preparation;
-  const homework = typedContent.homework || "";
-  const motivationalLine = typedContent.motivational_line || "";
+  // Detect if this is old format (has summary_short, why_watch, etc.)
+  const isOldFormat = 'summary_short' in content || 'why_watch' in content || 'homework_20m' in content;
+  
+  let introduction: string;
+  let keyPoints: string[];
+  let practicalTips: string[];
+  let importantNotes: string[] | undefined;
+  let equipmentPreparation: string | undefined;
+  let homework: string;
+  let motivationalLine: string;
+  
+  if (isOldFormat) {
+    // Convert old format to new format
+    const oldContent = content as any;
+    introduction = oldContent.summary_short || "";
+    
+    // Convert why_watch to key_points
+    keyPoints = oldContent.why_watch 
+      ? oldContent.why_watch.split(/[\n\r]+/).filter((line: string) => line.trim()).slice(0, 6)
+      : [];
+    
+    // Convert quick_action to practical_tips
+    practicalTips = oldContent.quick_action 
+      ? [oldContent.quick_action]
+      : [];
+    
+    homework = oldContent.homework_20m || "";
+    motivationalLine = oldContent.social_share || "";
+    importantNotes = undefined;
+    equipmentPreparation = oldContent.prev_lessons;
+  } else {
+    // Use new format directly
+    introduction = typedContent.introduction || "";
+    keyPoints = typedContent.key_points || [];
+    practicalTips = typedContent.practical_tips || [];
+    importantNotes = typedContent.important_notes;
+    equipmentPreparation = typedContent.equipment_preparation;
+    homework = typedContent.homework || "";
+    motivationalLine = typedContent.motivational_line || "";
+  }
 
   return `
     <div class="persona-block">
@@ -160,7 +194,7 @@ export function formatDefaultTemplateContent(
         <div class="persona-section persona-default-header">
           <div class="persona-badge">📘 Базовая версия урока</div>
           <p class="persona-text-muted">Заполните анкету, чтобы получить персонализированные рекомендации специально для вас.</p>
-          <a href="/survey/iframe" class="persona-btn-secondary" target="_blank">
+          <a href="https://shkolamasterov.online/pl/teach/control/lesson/view?id=342828951" class="persona-btn-secondary" target="_blank">
             Заполнить анкету
           </a>
         </div>

@@ -11,7 +11,18 @@
 - [types.ts](file://lib/supabase/types.ts)
 - [personalizations.ts](file://lib/api/personalizations.ts)
 - [test-lesson-block.html](file://public/test-lesson-block.html)
+- [http.ts](file://lib/utils/http.ts) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
+- [next.config.ts](file://next.config.ts) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
+- [vercel.json](file://vercel.json) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated CORS configuration details to reflect expanded methods and headers
+- Added documentation for OPTIONS preflight handlers across all API endpoints
+- Enhanced CORS policy description with new Access-Control-Max-Age header
+- Updated section sources to include newly modified files
+- Added reference to global CORS configuration in next.config.ts and vercel.json
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -273,18 +284,22 @@ The API implements permissive CORS policies to support integration with external
 
 **CORS Headers**
 - `Access-Control-Allow-Origin: *`
-- `Access-Control-Allow-Methods: POST, OPTIONS`
-- `Access-Control-Allow-Headers: Content-Type`
+- `Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS`
+- `Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With`
+- `Access-Control-Max-Age: 86400` (24 hours)
 
 All persona-related endpoints (POST /api/persona/personalize-template and POST /api/persona/block) include these CORS headers in their responses, enabling cross-origin requests from any domain. The API also includes OPTIONS method handlers to support preflight requests.
 
-This configuration allows seamless integration with third-party learning management systems and GetCourse integration, where the API is called from different domains than the client application.
+This configuration allows seamless integration with third-party learning management systems and GetCourse integration, where the API is called from different domains than the client application. The updated CORS policy now supports all standard HTTP methods and includes additional headers for authorization and request identification.
 
-The CORS policy is implemented consistently across all persona endpoints, ensuring reliable cross-origin access while maintaining security by only allowing POST and OPTIONS methods with Content-Type header.
+The CORS policy is implemented consistently across all persona endpoints through the shared `CORS_HEADERS` constant and `createOptionsHandler` function from `lib/utils/http.ts`. Additionally, global CORS headers are configured in `next.config.ts` and `vercel.json` to ensure headers are applied at multiple levels.
 
 **Section sources**
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L21-L24)
 - [block/route.ts](file://app/api/persona/block/route.ts#L16-L19)
+- [http.ts](file://lib/utils/http.ts#L6-L11) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
+- [next.config.ts](file://next.config.ts#L15-L25) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
+- [vercel.json](file://vercel.json#L4-L25) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
 
 ## Error Handling
 The API follows consistent error handling patterns across all endpoints:

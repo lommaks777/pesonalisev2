@@ -12,8 +12,16 @@
 - [lib/openai.ts](file://lib/openai.ts)
 - [lib/api/personalizations.ts](file://lib/api/personalizations.ts)
 - [lib/api/lessons.ts](file://lib/api/lessons.ts)
+- [lib/utils/http.ts](file://lib/utils/http.ts) - *Updated in recent commit*
 - [PERSONALIZATION_API.md](file://PERSONALIZATION_API.md)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated CORS and OPTIONS handler implementation across all API routes
+- Enhanced CORS configuration with standardized headers and methods
+- Added consistent error response formatting
+- Updated source tracking to include new http utility module
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -284,20 +292,24 @@ Each endpoint follows a structured try-catch pattern that ensures errors are pro
 
 ## CORS and Security Configuration
 
-All API endpoints include standardized CORS headers to enable cross-origin requests:
+All API endpoints include standardized CORS headers through a centralized configuration in `lib/utils/http.ts`. The system uses a shared `CORS_HEADERS` constant and `createOptionsHandler` function to ensure consistency across all routes.
 
+**Standard CORS Headers**
 ```http
 Access-Control-Allow-Origin: *
-Access-Control-Allow-Methods: POST, OPTIONS
-Access-Control-Allow-Headers: Content-Type
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With
+Access-Control-Max-Age: 86400
 ```
 
-The configuration allows public access to all endpoints, which is appropriate for the application's use case as an embedded content delivery system. Each endpoint includes an OPTIONS handler to support preflight requests. The system does not implement authentication for API endpoints, as personalization is based on user identifiers rather than secure credentials. However, all database operations use Supabase's service role key for elevated privileges while maintaining security boundaries.
+The configuration allows public access to all endpoints, which is appropriate for the application's use case as an embedded content delivery system. Each endpoint includes an OPTIONS handler to support preflight requests through the `createOptionsHandler` utility function. The system does not implement authentication for API endpoints, as personalization is based on user identifiers rather than secure credentials. However, all database operations use Supabase's service role key for elevated privileges while maintaining security boundaries.
 
 **Section sources**
+- [lib/utils/http.ts](file://lib/utils/http.ts)
 - [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts)
 - [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts)
-- [lib/supabase/server.ts](file://lib/supabase/server.ts)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts)
+- [app/api/lessons/route.ts](file://app/api/lessons/route.ts)
 
 ## Validation and Input Sanitization
 
