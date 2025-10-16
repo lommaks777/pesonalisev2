@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { personalizeLesson, type LessonInfo } from "@/lib/services/openai";
 import { loadLessonTemplate } from "@/lib/services/lesson-templates";
-import { formatPersonalizedContent, formatSurveyAlert, formatNotFoundAlert } from "@/lib/services/html-formatter";
+import { formatPersonalizedContent, formatSurveyAlert, formatNotFoundAlert, formatDefaultTemplateContent } from "@/lib/services/html-formatter";
 import { savePersonalization } from "@/lib/services/personalization";
 import { CORS_HEADERS, createOptionsHandler } from "@/lib/utils/http";
 
@@ -30,21 +30,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
 
-    // 1. Получаем профиль пользователя
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id, name, survey")
-      .eq("user_identifier", user_id)
-      .maybeSingle();
-
-    if (!profile) {
-      return NextResponse.json({
-        ok: true,
-        html: formatSurveyAlert(user_id),
-      }, { headers: CORS_HEADERS });
-    }
-
-    // 2. Получаем урок по номеру
+    // 1. Получаем урок по номеру
     const { data: lesson } = await supabase
       .from("lessons")
       .select("id, title, lesson_number")
@@ -58,8 +44,32 @@ export async function POST(request: NextRequest) {
       }, { headers: CORS_HEADERS });
     }
 
-  // 3. Загружаем шаблон урока
-  const template = await loadLessonTemplate(lesson_number);
+    // 2. Получаем профиль пользователя
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, name, survey")
+      .eq("user_identifier", user_id)
+      .maybeSingle();
+
+    // 3. Загружаем шаблон урока
+    const template = await loadLessonTemplate(lesson_number);
+
+    if (!profile) {
+      // Пользователь не найден - возвращаем базовый шаблон
+      const html = formatDefaultTemplateContent(
+        template,
+        {
+          lesson_number: lesson.lesson_number,
+          title: lesson.title,
+        },
+        true // include survey CTA
+      );
+      
+      return NextResponse.json({
+        ok: true,
+        html: html,
+      }, { headers: CORS_HEADERS });
+    }
 
     // 4. Персонализируем шаблон
     const lessonInfo: LessonInfo = {

@@ -3,7 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { personalizeLesson, type SurveyData as SurveyDataBase, type LessonInfo } from "@/lib/services/openai";
 import { loadLessonTemplate } from "@/lib/services/lesson-templates";
 import { upsertProfile } from "@/lib/services/profile";
-import { savePersonalization } from "@/lib/services/personalization";
+import { savePersonalization, getPersonalization } from "@/lib/services/personalization";
+import { formatPersonalizedContent } from "@/lib/services/html-formatter";
 
 interface SurveyData extends SurveyDataBase {
   real_name: string;
@@ -101,11 +102,33 @@ export async function POST(request: NextRequest) {
     const successCount = results.filter(r => r.success).length;
     console.log(`Generated ${successCount}/${lessons.length} personalizations for user ${userIdentifier}`);
 
+    // 4. Получаем персонализацию первого урока для превью
+    let firstLessonPreview = undefined;
+    if (lessons.length > 0) {
+      try {
+        const firstLesson = lessons[0];
+        const firstPersonalization = await getPersonalization(profile.id, firstLesson.id);
+        
+        if (firstPersonalization) {
+          const html = formatPersonalizedContent(firstPersonalization);
+          firstLessonPreview = {
+            html: html,
+            lessonNumber: firstLesson.lesson_number,
+            lessonTitle: firstLesson.title,
+          };
+        }
+      } catch (error) {
+        console.error("Error fetching first lesson preview:", error);
+        // Не прерываем ответ, просто пропускаем preview
+      }
+    }
+
     return NextResponse.json({
       success: true,
       profileId: profile.id,
       userIdentifier: userIdentifier,
       message: "Персональный курс успешно создан!",
+      firstLessonPreview,
     });
 
   } catch (error) {

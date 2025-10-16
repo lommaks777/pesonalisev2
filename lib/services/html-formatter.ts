@@ -1,4 +1,5 @@
 import { PersonalizedContent } from "./openai";
+import { LessonTemplate } from "./lesson-templates";
 
 /**
  * Escapes HTML special characters to prevent XSS
@@ -132,6 +133,92 @@ export function formatPersonalizationUnavailableAlert(userId: string): string {
           Заполнить анкету →
         </a>
       </div>
+    </div>
+  `;
+}
+
+/**
+ * Formats default lesson template as HTML
+ * Used when user profile is not found or personalization doesn't exist yet
+ */
+export function formatDefaultTemplateContent(
+  template: LessonTemplate,
+  lessonInfo: { lesson_number: number; title: string },
+  includeSurveyCTA: boolean = true
+): string {
+  const introduction = template.introduction || "";
+  const keyPoints = template.key_points || [];
+  const practicalTips = template.practical_tips || [];
+  const importantNotes = template.important_notes;
+  const equipmentPreparation = template.equipment_preparation;
+  const homework = template.homework || "";
+  const motivationalLine = template.motivational_line || "";
+
+  return `
+    <div class="persona-block persona-default">
+      ${includeSurveyCTA ? `
+        <div class="persona-section persona-default-header">
+          <div class="persona-badge">📘 Базовая версия урока</div>
+          <p class="persona-text-muted">Заполните анкету, чтобы получить персонализированные рекомендации специально для вас.</p>
+          <a href="/survey/iframe" class="persona-btn-secondary" target="_blank">
+            Заполнить анкету
+          </a>
+        </div>
+      ` : ''}
+
+      ${introduction ? `
+        <div class="persona-section persona-intro">
+          <h3 class="persona-section-title">👋 Введение</h3>
+          <p class="persona-text">${escapeHtml(introduction)}</p>
+        </div>
+      ` : ''}
+
+      ${keyPoints.length > 0 ? `
+        <div class="persona-section">
+          <h3 class="persona-section-title">🔑 Ключевые моменты</h3>
+          <ul class="persona-list persona-key-points">
+            ${keyPoints.map(point => `<li class="persona-list-item">${escapeHtml(point)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${practicalTips.length > 0 ? `
+        <div class="persona-section">
+          <h3 class="persona-section-title">💡 Практические советы</h3>
+          <ul class="persona-list persona-tips">
+            ${practicalTips.map(tip => `<li class="persona-list-item">${escapeHtml(tip)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${importantNotes && importantNotes.length > 0 ? `
+        <div class="persona-section persona-warning">
+          <h3 class="persona-section-title">⚠️ Важно</h3>
+          <ul class="persona-list">
+            ${importantNotes.map(note => `<li class="persona-list-item">${escapeHtml(note)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${equipmentPreparation ? `
+        <div class="persona-section persona-equipment">
+          <h3 class="persona-section-title">🧰 Инвентарь и подготовка</h3>
+          <p class="persona-text">${escapeHtml(equipmentPreparation)}</p>
+        </div>
+      ` : ''}
+
+      ${homework ? `
+        <div class="persona-section persona-homework">
+          <h3 class="persona-section-title">📚 Домашнее задание</h3>
+          <p class="persona-text">${escapeHtml(homework)}</p>
+        </div>
+      ` : ''}
+
+      ${motivationalLine ? `
+        <div class="persona-section persona-motivation">
+          <p class="persona-text"><em>${escapeHtml(motivationalLine)}</em></p>
+        </div>
+      ` : ''}
     </div>
   `;
 }
