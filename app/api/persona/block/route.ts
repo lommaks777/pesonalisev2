@@ -129,7 +129,20 @@ export async function POST(request: NextRequest) {
     if (!profile) {
       console.log('[/api/persona/block] Profile not found, returning default template');
       // Пользователь не найден - возвращаем базовый шаблон урока
-      const template = await loadLessonTemplate(lessonData.lesson_number);
+      
+      // Сначала проверяем, есть ли шаблон в БД
+      const templateFromDb = (lessonData as any).content?.template;
+      
+      let template;
+      if (templateFromDb) {
+        console.log('[/api/persona/block] Using template from database');
+        template = templateFromDb;
+      } else {
+        console.log('[/api/persona/block] Loading template from file system (fallback)');
+        // Fallback: загружаем из файловой системы (только для shvz)
+        template = await loadLessonTemplate(lessonData.lesson_number);
+      }
+      
       const html = formatDefaultTemplateContent(
         template,
         {
