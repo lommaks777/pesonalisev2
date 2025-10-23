@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CORS_HEADERS, createOptionsHandler } from "@/lib/utils/http";
 import { formatPersonalizedContent, formatSurveyAlert, formatNotFoundAlert, formatPersonalizationUnavailableAlert, formatDefaultTemplateContent } from "@/lib/services/html-formatter";
 import { getPersonalization } from "@/lib/services/personalization";
-import { loadLessonTemplate } from "@/lib/services/lesson-templates";
+import { loadLessonTemplate, detectTemplateFormat, transformEmojiToNew } from "@/lib/services/lesson-templates";
 
 interface BlockRequest {
   user_id: string;
@@ -136,7 +136,16 @@ export async function POST(request: NextRequest) {
       let template;
       if (templateFromDb) {
         console.log('[/api/persona/block] Using template from database');
-        template = templateFromDb;
+        // Определяем формат и трансформируем если нужно
+        const format = detectTemplateFormat(templateFromDb);
+        console.log('[/api/persona/block] Template format:', format);
+        
+        if (format === 'emoji') {
+          template = transformEmojiToNew(templateFromDb);
+          console.log('[/api/persona/block] Transformed emoji template to standard format');
+        } else {
+          template = templateFromDb;
+        }
       } else {
         console.log('[/api/persona/block] Loading template from file system (fallback)');
         // Fallback: загружаем из файловой системы (только для shvz)
