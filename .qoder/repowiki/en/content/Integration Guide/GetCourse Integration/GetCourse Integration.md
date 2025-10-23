@@ -2,14 +2,23 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [GETCOURSE_HTML_CODES.md](file://GETCOURSE_HTML_CODES.md)
-- [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts)
-- [app/api/survey/route.ts](file://app/api/survey/route.ts)
-- [app/survey/iframe/page.tsx](file://app/survey/iframe/page.tsx)
+- [GETCOURSE_HTML_CODES.md](file://GETCOURSE_HTML_CODES.md) - *Updated with lesson mapping details*
+- [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts) - *Updated lesson search logic*
+- [app/api/survey/route.ts](file://app/api/survey/route.ts) - *Enhanced survey processing*
+- [app/survey/iframe/page.tsx](file://app/survey/iframe/page.tsx) - *Added name verification UI*
 - [public/getcourse/anketa.html](file://public/getcourse/anketa.html)
 - [public/getcourse/lesson-block-template.html](file://public/getcourse/lesson-block-template.html)
 - [public/persona/styles.css](file://public/persona/styles.css)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated survey integration section with name verification instructions
+- Enhanced placeholder usage details with improved validation logic
+- Added name verification UI description in survey section
+- Updated HTML code snippets with improved userId validation
+- Added troubleshooting guidance for name/email confusion issues
+- Improved lesson title mapping recommendations
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -69,19 +78,20 @@ GetCourse->>Student : Displays personalized lesson content
 
 The survey integration involves embedding an iframe on the first lesson of the course to collect user profile information. The survey form is pre-filled with the student's name using GetCourse's `{real_name}` placeholder, while the `{uid}` parameter links the survey response to the user's identifier in the system. The survey collects essential information including motivation, target clients, desired skills, fears, expected results, and practice models.
 
-The survey is implemented as a Next.js page component that processes URL parameters and displays a form. Upon submission, the data is sent to the `/api/survey` endpoint, which creates or updates the user's profile in Supabase and triggers AI-generated personalizations for all course lessons.
+The survey is implemented as a Next.js page component that processes URL parameters and displays a form. Upon submission, the data is sent to the `/api/survey` endpoint, which creates or updates the user's profile in Supabase and triggers AI-generated personalizations for all course lessons. A key enhancement is the name verification feature, which alerts users when `{real_name}` contains an email address instead of a name, allowing them to correct it before submission.
 
 ```mermaid
 flowchart TD
 A[Student accesses first lesson] --> B{Survey iframe loaded}
 B --> C[Extract {uid} and {real_name} from URL]
 C --> D[Pre-fill survey form with name]
-D --> E[Student completes survey]
-E --> F[Submit to /api/survey endpoint]
-F --> G[Create/update profile in Supabase]
-G --> H[Generate AI personalizations]
-H --> I[Store in personalized_lesson_descriptions]
-I --> J[Display success message]
+D --> E[Student verifies/corrects name if needed]
+E --> F[Student completes survey]
+F --> G[Submit to /api/survey endpoint]
+G --> H[Create/update profile in Supabase]
+H --> I[Generate AI personalizations]
+I --> J[Store in personalized_lesson_descriptions]
+J --> K[Display success message]
 ```
 
 **Diagram sources**
@@ -171,7 +181,7 @@ LESSONS ||--o{ PERSONALIZED_LESSON_DESCRIPTIONS : "for"
 
 The integration utilizes two key placeholders from GetCourse: `{uid}` and `{real_name}`. These placeholders are automatically replaced by GetCourse with the actual user data when the lesson page is rendered. The `{uid}` placeholder represents the unique user identifier in GetCourse and is used as the `user_identifier` in the Supabase `profiles` table to link all user data across sessions. This ensures that a user's personalization persists even if they access the course from different devices or sessions.
 
-The `{real_name}` placeholder contains the student's first name as provided in their GetCourse profile. This value is passed as a URL parameter to the survey iframe and used to pre-fill the name field in the survey form. This improves user experience by reducing the amount of information students need to enter manually and increases completion rates for the personalization survey.
+The `{real_name}` placeholder contains the student's first name as provided in their GetCourse profile. This value is passed as a URL parameter to the survey iframe and used to pre-fill the name field in the survey form. This improves user experience by reducing the amount of information students need to enter manually and increases completion rates for the personalization survey. A critical enhancement is the name verification UI, which alerts users when `{real_name}` contains an email address instead of a name, prompting them to correct it.
 
 Both placeholders are case-sensitive and must be included exactly as shown in the integration code. They should not be enclosed in quotes or modified in any way within the HTML code snippets. The system includes validation to handle cases where these placeholders might not be properly replaced by GetCourse, defaulting to "guest" for the user ID in such cases.
 
@@ -217,7 +227,7 @@ For lesson block integration, the following template should be used on each less
 (async function(){
   const API = "https://pesonalisev2-zxby.vercel.app/api/persona";
   const UID = "{uid}";
-  const userId = (/^\d{3,}$/.test(String(UID))) ? String(UID) : "guest";
+  const userId = UID && UID !== "{uid}" ? String(UID) : "guest";
   const mount = document.getElementById('persona-lesson-X');
   const lesson = mount.getAttribute('data-lesson');
   const title = mount.getAttribute('data-title');
@@ -236,7 +246,7 @@ For lesson block integration, the following template should be used on each less
     
     const data = await r.json();
     
-    if (data && data.ok && data.html) {
+    if (data?.ok && data?.html) {
       if (!document.querySelector('link[data-persona-styles]')) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
@@ -246,6 +256,8 @@ For lesson block integration, the following template should be used on each less
       }
       mount.innerHTML = data.html;
       mount.style.display = 'block';
+    } else {
+      console.warn('Personalization unavailable:', data?.error || 'unknown error');
     }
   } catch(e) {
     console.error('Persona block error:', e);
@@ -306,6 +318,12 @@ Common issues and their solutions:
 - Verify Supabase connection performance
 - Consider implementing client-side caching
 - Monitor server response times in Vercel dashboard
+
+**Name/Email Confusion**
+- Check if `{real_name}` contains an email address instead of a name
+- Verify that users are correcting their name in the survey form
+- Confirm that the name verification UI is visible and functional
+- Test with accounts where `{real_name}` is set to email address
 
 **Section sources**
 - [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts)

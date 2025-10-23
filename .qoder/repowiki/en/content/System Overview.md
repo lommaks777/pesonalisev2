@@ -2,44 +2,36 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [app/api/survey/route.ts](file://app/api/survey/route.ts)
-- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts)
-- [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts)
-- [lib/supabase/client.ts](file://lib/supabase/client.ts)
-- [lib/supabase/server.ts](file://lib/supabase/server.ts)
-- [lib/supabase/types.ts](file://lib/supabase/types.ts)
-- [lib/openai.ts](file://lib/openai.ts)
-- [lib/services/openai.ts](file://lib/services/openai.ts) - *Updated in recent commit*
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated in recent commit*
-- [lib/utils/http.ts](file://lib/utils/http.ts) - *Updated in recent commit*
-- [components/profiles/profile-survey.tsx](file://components/profiles/profile-survey.tsx)
-- [components/personalizations/personalized-lesson.tsx](file://components/personalizations/personalized-lesson.tsx)
-- [store/user_profiles.json](file://store/user_profiles.json)
-- [store/shvz/lessons](file://store/shvz/lessons)
-- [GETCOURSE_INTEGRATION.md](file://GETCOURSE_INTEGRATION.md)
-- [PERSONALIZATION_API.md](file://PERSONALIZATION_API.md)
-- [SYSTEM_OVERVIEW.md](file://SYSTEM_OVERVIEW.md)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts) - *Updated in recent commit*
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts) - *New implementation*
+- [lib/services/openai.ts](file://lib/services/openai.ts) - *Deprecated in recent commit*
+- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Deprecated in recent commit*
+- [scripts/migrate-transcripts-to-db.ts](file://scripts/migrate-transcripts-to-db.ts) - *New implementation*
+- [PERSONALIZATION_ENGINE_REFACTORING_SUMMARY.md](file://PERSONALIZATION_ENGINE_REFACTORING_SUMMARY.md)
+- [REFACTORING_COMPLETE.md](file://REFACTORING_COMPLETE.md)
+- [COMPLETE_SYSTEM.md](file://COMPLETE_SYSTEM.md)
 </cite>
 
 ## Update Summary
 **Changes Made**   
-- Updated **Core Architecture Components** to reflect service-oriented architecture changes
-- Enhanced **API Endpoints and Integration Points** with new HTTP utility patterns
-- Revised **Personalization Engine and JSON Templates** with updated service module details
-- Added **Service Layer Architecture** section to document new service-oriented design
-- Updated **Technical Decisions** to include HTTP utility standardization
-- Added new sources for service and utility modules
+- Completely refactored **Personalization Engine and JSON Templates** section to reflect transcript-driven architecture
+- Updated **System Flow: From Survey to Personalized Lessons** to describe new transcript-based workflow
+- Revised **Core Architecture Components** to remove template-based references and add transcript processing
+- Added **Transcript Migration and Database Integration** section to document new data flow
+- Updated **Technical Decisions** to reflect GPT-4o upgrade and database-centric approach
+- Added new sources for personalization-engine.ts and migration scripts
+- Removed outdated references to lesson-templates.ts and template-based personalization
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Business Goals and Target Users](#business-goals-and-target-users)
 3. [Core Architecture Components](#core-architecture-components)
-4. [Service Layer Architecture](#service-layer-architecture)
+4. [Transcript Migration and Database Integration](#transcript-migration-and-database-integration)
 5. [System Flow: From Survey to Personalized Lessons](#system-flow-from-survey-to-personalized-lessons)
 6. [Data Flow Architecture](#data-flow-architecture)
 7. [Frontend Architecture](#frontend-architecture)
 8. [API Endpoints and Integration Points](#api-endpoints-and-integration-points)
-9. [Personalization Engine and JSON Templates](#personalization-engine-and-json-templates)
+9. [Personalization Engine and Transcript Processing](#personalization-engine-and-transcript-processing)
 10. [External Integrations](#external-integrations)
 11. [Fallback Mechanisms](#fallback-mechanisms)
 12. [Technical Decisions](#technical-decisions)
@@ -50,9 +42,9 @@ The Persona application is an AI-powered personalized education platform designe
 
 The system architecture integrates multiple technologies and services to create a seamless flow from user onboarding through personalized lesson delivery. At its core, the application uses Next.js App Router with React Server Components to deliver a dynamic, server-rendered user interface that efficiently handles both static content and real-time personalization. User interactions begin with a comprehensive survey that captures critical information about the student's background, motivations, target clients, desired skills, fears, expected outcomes, and preferred practice models.
 
-This information is then processed through an AI-powered personalization engine that generates customized lesson content for each student. The system integrates with Supabase for data persistence, OpenAI for AI content generation, and external Learning Management Systems (LMS) like GetCourse for user acquisition and course delivery. The architecture is designed to be scalable, with clear separation of concerns between frontend presentation, API routes, database operations, and external service integrations.
+This information is then processed through an AI-powered personalization engine that generates customized lesson content for each student. The system has been fundamentally refactored to process full lesson transcripts directly rather than compressed templates, enabling richer, more contextually accurate personalization. The platform integrates with Supabase for data persistence, OpenAI for AI content generation, and external Learning Management Systems (LMS) like GetCourse for user acquisition and course delivery. The architecture is designed to be scalable, with clear separation of concerns between frontend presentation, API routes, database operations, and external service integrations.
 
-The platform serves multiple stakeholders: students receive personalized educational content that addresses their specific needs and concerns; administrators can monitor user engagement and system performance; and developers benefit from a well-structured codebase with clear API contracts and modular components. This documentation provides a comprehensive overview of the system architecture, explaining how these components work together to deliver a personalized learning experience.
+The platform serves multiple stakeholders: students receive personalized educational content that directly addresses their specific needs and concerns; administrators can monitor user engagement and system performance; and developers benefit from a well-structured codebase with clear API contracts and modular components. This documentation provides a comprehensive overview of the system architecture, explaining how these components work together to deliver a personalized learning experience.
 
 **Section sources**
 - [SYSTEM_OVERVIEW.md](file://SYSTEM_OVERVIEW.md#L0-L202)
@@ -77,42 +69,46 @@ The platform's integration with external LMS platforms like GetCourse extends it
 
 The Persona application's architecture consists of several interconnected components that work together to deliver personalized educational content. The frontend layer is built with Next.js App Router and React Server Components, providing a modern, server-rendered user interface with optimized performance and SEO capabilities. The UI components are organized into a modular structure with dedicated directories for personalizations, profiles, and shared UI elements, promoting reusability and maintainability.
 
-The API layer exposes several critical endpoints that handle different aspects of the personalization workflow. The `/api/survey` endpoint processes user survey submissions, creating or updating user profiles in the database and triggering the personalization process for all course lessons. The `/api/persona/personalize-template` endpoint generates personalized lesson content by combining user profile data with predefined lesson templates and AI processing. The `/api/persona/block` endpoint delivers pre-rendered HTML blocks containing personalized lesson descriptions for integration into external platforms.
+The API layer exposes several critical endpoints that handle different aspects of the personalization workflow. The `/api/survey` endpoint processes user survey submissions, creating or updating user profiles in the database and triggering the personalization process for all course lessons. The `/api/persona/personalize-template` endpoint has been deprecated in favor of direct transcript processing. The `/api/persona/block` endpoint delivers pre-rendered HTML blocks containing personalized lesson descriptions for integration into external platforms.
 
-The data layer is powered by Supabase, which provides a PostgreSQL database with a well-defined schema for storing user profiles, lessons, courses, and personalized lesson descriptions. The `profiles` table stores user information including names, identifiers, course enrollments, and survey responses, while the `personalized_lesson_descriptions` table contains the AI-generated personalized content for each user-lesson combination. The system also utilizes a file-based storage system in the `store/` directory for lesson templates and processing queues, providing a hybrid approach to data management.
+The data layer is powered by Supabase, which provides a PostgreSQL database with a well-defined schema for storing user profiles, lessons, courses, and personalized lesson descriptions. The `profiles` table stores user information including names, identifiers, course enrollments, and survey responses, while the `personalized_lesson_descriptions` table contains the AI-generated personalized content for each user-lesson combination. The system now stores full lesson transcripts in the `lessons.content.transcription` JSONB field, eliminating the dependency on file-based templates.
 
-The AI processing layer leverages OpenAI's GPT-4o-mini model to generate personalized content based on user profiles and lesson templates. This layer is integrated throughout the system, with AI calls occurring during both bulk personalization (when a user first submits their survey) and on-demand personalization (when specific lesson content is requested). The system includes error handling and fallback mechanisms to ensure reliability even when AI processing encounters issues.
+The AI processing layer leverages OpenAI's GPT-4o model to generate personalized content based on full lesson transcripts and user profiles. This represents a significant upgrade from the previous GPT-4o-mini model and enables processing of complete lesson context (15-30KB) rather than compressed templates (1-2KB). The system includes error handling and fallback mechanisms to ensure reliability even when AI processing encounters issues.
 
 **Section sources**
-- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
-- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L0-L293)
-- [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts#L0-L197)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170) - *Updated in recent commit*
 - [lib/supabase/types.ts](file://lib/supabase/types.ts#L0-L139)
 - [components/profiles/profile-survey.tsx](file://components/profiles/profile-survey.tsx#L0-L66)
 - [components/personalizations/personalized-lesson.tsx](file://components/personalizations/personalized-lesson.tsx#L0-L26)
 
-## Service Layer Architecture
+## Transcript Migration and Database Integration
 
-The system has been refactored to implement a service-oriented architecture with centralized business logic in the `lib/services` directory. This modular approach improves maintainability and reduces code duplication across API endpoints. The key service modules include:
+The system has undergone a fundamental architectural transformation by migrating from a template-based personalization system to a transcript-driven approach. This change eliminates the information bottleneck of the previous system and enables richer, more contextually accurate personalization.
 
-- **openai.ts**: Centralizes AI processing logic with the `personalizeLesson` function that handles prompt creation, OpenAI API calls, and error handling. This service exports a singleton OpenAI client instance to ensure efficient resource usage.
+The migration process was executed through the `scripts/migrate-transcripts-to-db.ts` script, which transferred 12 lesson transcripts from file system storage to the Supabase database. All transcripts are now stored in the `lessons.content.transcription` JSONB field with associated metadata including transcription length, source, and date. The migration was completed with 100% success rate, and the original transcript files have been preserved for historical reference.
 
-- **lesson-templates.ts**: Manages lesson template operations including loading templates from the file system, handling multiple filename patterns for backward compatibility, and providing fallback templates when files are missing. The module includes a centralized `LESSON_ID_MAP` for consistent lesson ID mapping.
+The database schema now includes a comprehensive content structure:
+```json
+{
+  "transcription": "Full lesson transcript text...",
+  "transcription_length": 15249,
+  "transcription_source": "file-migration",
+  "transcription_date": "2025-10-16T..."
+}
+```
 
-- **html-formatter.ts**: Handles content formatting operations, converting personalized JSON content into HTML blocks with the `formatPersonalizedContent` function, and generating fallback HTML for error conditions.
+This database-centric approach provides several advantages over the previous file-based template system:
+- **Eliminated Information Loss**: Full transcripts (15-30KB) are processed instead of compressed templates (1-2KB)
+- **Improved Maintainability**: Centralized data storage in database rather than distributed file system
+- **Enhanced Scalability**: Database queries and transactions provide better performance at scale
+- **Simplified Deployment**: No dependency on file system synchronization across environments
 
-- **personalization.ts**: Contains the `savePersonalization` function that handles database operations for storing personalized content using Supabase upsert operations.
-
-- **http.ts**: Provides standardized HTTP response patterns with `CORS_HEADERS`, `createCorsResponse`, `createErrorResponse`, and `createOptionsHandler` utilities to ensure consistent API responses across endpoints.
-
-This service layer abstraction allows API routes to focus on request handling and response formatting while delegating business logic to dedicated service modules, promoting code reuse and easier testing.
+The `loadLessonTranscript` function in `lib/services/personalization-engine.ts` handles transcript retrieval from the database, with comprehensive error handling for missing or empty transcripts.
 
 **Section sources**
-- [lib/services/openai.ts](file://lib/services/openai.ts#L1-L138) - *Updated in recent commit*
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L101) - *Updated in recent commit*
-- [lib/services/html-formatter.ts](file://lib/services/html-formatter.ts#L1-L90)
-- [lib/services/personalization.ts](file://lib/services/personalization.ts#L1-L47)
-- [lib/utils/http.ts](file://lib/utils/http.ts#L1-L73) - *Updated in recent commit*
+- [scripts/migrate-transcripts-to-db.ts](file://scripts/migrate-transcripts-to-db.ts#L0-L317) - *New implementation*
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts#L63-L93) - *New implementation*
+- [lib/supabase/types.ts](file://lib/supabase/types.ts#L0-L139)
 
 ## System Flow: From Survey to Personalized Lessons
 
@@ -120,17 +116,16 @@ The system flow begins when a student accesses the survey form, typically throug
 
 The API processes the survey data in several sequential steps. First, it validates the required fields and creates or updates a user profile in the Supabase database. If the student has a user identifier from GetCourse, this is used to link their profile across systems; otherwise, a guest identifier is generated. The profile stores all survey responses as JSON data, preserving the student's input for future personalization.
 
-Next, the system retrieves all lessons for the enrolled course from the database. For each lesson, it triggers the personalization process by loading a corresponding JSON template from the file system. These templates contain the base content for each lesson, including summary descriptions, key points, and homework suggestions. The system then uses the OpenAI API to generate personalized content by combining the lesson template with the student's profile information.
+Next, the system retrieves all lessons for the enrolled course from the database. For each lesson, it loads the full transcript from the `lessons.content.transcription` field rather than a template file. The system then uses the OpenAI GPT-4o model to generate personalized content by combining the complete lesson transcript with the student's profile information.
 
-The personalization process involves sending a carefully crafted prompt to the GPT-4o-mini model, instructing it to adapt the lesson content based on the student's specific characteristics. The prompt includes the original template, the student's survey responses, and specific instructions to address the student by name, consider their motivations and goals, address their fears and concerns, and adapt practical recommendations to their preferred practice model. The AI generates a JSON response containing the personalized content, which is then stored in the database.
+The personalization process involves sending a carefully crafted prompt to the GPT-4o model, instructing it to adapt the lesson content based on the student's specific characteristics. The prompt includes the full transcript (15-30KB), the student's survey responses, and specific instructions to address the student by name, consider their motivations and goals, address their fears and concerns, and adapt practical recommendations to their preferred practice model. The AI generates a JSON response containing the personalized content with seven distinct sections, which is then stored in the database.
 
 Once all lesson personalizations are complete, the system returns a success response to the frontend, including the student's profile ID. The frontend can then redirect the student to their personalized dashboard, where they can access all lessons with customized content. Subsequent requests for lesson content can be served through the `/api/persona/block` endpoint, which retrieves the pre-generated personalized content from the database and returns it as HTML for immediate display.
 
 **Section sources**
-- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
-- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L0-L293)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170) - *Updated in recent commit*
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts#L267-L370) - *New implementation*
 - [GETCOURSE_INTEGRATION.md](file://GETCOURSE_INTEGRATION.md#L0-L279)
-- [PERSONALIZATION_API.md](file://PERSONALIZATION_API.md#L0-L271)
 
 ## Data Flow Architecture
 
@@ -140,10 +135,10 @@ A[GetCourse LMS] --> |Embedded iframe| B[Survey Form]
 B --> C[/api/survey<br>POST Request]
 C --> D[Supabase Database]
 D --> |Store Profile| E[profiles Table]
-C --> F[Load Lesson Templates]
-F --> G[store/shvz/*.json]
+C --> F[Load Lesson Transcripts]
+F --> G[lessons.content.transcription]
 C --> H[OpenAI API]
-H --> |Generate Personalization| I[GPT-4o-mini]
+H --> |Generate Personalization| I[GPT-4o]
 I --> J[Personalized Content]
 J --> D --> |Store Personalization| K[personalized_lesson_descriptions Table]
 L[Student Dashboard] --> M[/api/persona/block<br>POST Request]
@@ -163,10 +158,10 @@ style O fill:#f9f,stroke:#333
 ```
 
 **Diagram sources**
-- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170) - *Updated in recent commit*
 - [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts#L0-L197)
 - [lib/supabase/types.ts](file://lib/supabase/types.ts#L0-L139)
-- [store/shvz/lessons](file://store/shvz/lessons)
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts#L63-L93) - *New implementation*
 
 ## Frontend Architecture
 
@@ -179,7 +174,7 @@ React Server Components play a crucial role in the architecture, allowing server
 The frontend communicates with the backend through API routes, using standard HTTP methods to create, read, update, and delete resources. The application handles both form submissions (such as survey data) and dynamic content requests (such as personalized lesson blocks) through these API endpoints. Error handling and loading states are implemented throughout the UI to provide a smooth user experience, with appropriate feedback for successful operations and error conditions.
 
 **Section sources**
-- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170) - *Updated in recent commit*
 - [components/profiles/profile-survey.tsx](file://components/profiles/profile-survey.tsx#L0-L66)
 - [components/personalizations/personalized-lesson.tsx](file://components/personalizations/personalized-lesson.tsx#L0-L26)
 - [app/page.tsx](file://app/page.tsx)
@@ -187,51 +182,54 @@ The frontend communicates with the backend through API routes, using standard HT
 
 ## API Endpoints and Integration Points
 
-The Persona application exposes several API endpoints that serve as integration points with both internal components and external systems. The `/api/survey` endpoint is the primary entry point for user onboarding, accepting POST requests with survey data and returning profile information. This endpoint handles user profile creation or updates, triggers the personalization process for all course lessons, and manages database operations through Supabase.
+The Persona application exposes several API endpoints that serve as integration points with both internal components and external systems. The `/api/survey` endpoint is the primary entry point for user onboarding, accepting POST requests with survey data and returning profile information. This endpoint handles user profile creation or updates, triggers the personalization process for all course lessons using full transcripts, and manages database operations through Supabase.
 
-The `/api/persona/personalize-template` endpoint generates personalized lesson content by combining user profile data with predefined templates and AI processing. It accepts user identifiers and lesson numbers as parameters, retrieves the corresponding profile and lesson template, and uses OpenAI to generate personalized content. This endpoint supports both immediate processing and caching through the flush parameter, allowing for efficient content delivery.
-
-The `/api/persona/block` endpoint serves as the primary integration point with external systems, returning pre-rendered HTML blocks containing personalized lesson descriptions. This endpoint is designed for easy embedding in external websites and LMS platforms through iframes or JavaScript integration. It handles CORS headers appropriately and returns structured responses that include both the HTML content and caching information.
+The `/api/persona/personalize-template` endpoint has been deprecated following the architectural refactoring to transcript-driven personalization. The `/api/persona/block` endpoint serves as the primary integration point with external systems, returning pre-rendered HTML blocks containing personalized lesson descriptions. This endpoint is designed for easy embedding in external websites and LMS platforms through iframes or JavaScript integration. It handles CORS headers appropriately and returns structured responses that include both the HTML content and caching information.
 
 Additional API endpoints include `/api/lessons` for retrieving lesson lists, `/api/personalizations` for managing personalized content, and profile-specific routes for retrieving user information. These endpoints follow RESTful principles with clear request and response formats, making them easy to understand and integrate. The API layer is protected by appropriate error handling and validation, ensuring robust operation even under unexpected conditions.
 
 All API endpoints utilize standardized HTTP utilities from `lib/utils/http.ts` including `CORS_HEADERS`, `createCorsResponse`, `createErrorResponse`, and `createOptionsHandler` to ensure consistent response patterns and proper CORS handling across the application.
 
 **Section sources**
-- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
-- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L0-L293)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170) - *Updated in recent commit*
 - [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts#L0-L197)
 - [app/api/lessons/route.ts](file://app/api/lessons/route.ts#L0-L20)
 - [lib/utils/http.ts](file://lib/utils/http.ts#L1-L73) - *Updated in recent commit*
-- [PERSONALIZATION_API.md](file://PERSONALIZATION_API.md#L0-L271)
 
-## Personalization Engine and JSON Templates
+## Personalization Engine and Transcript Processing
 
-The personalization engine is the core intelligence of the Persona application, transforming generic lesson content into personalized learning experiences. This engine operates by combining three key inputs: user profile data from surveys, predefined lesson templates stored as JSON files, and AI-generated content through OpenAI's GPT-4o-mini model. The JSON templates, located in the `store/shvz/` directory, contain the base structure and content for each lesson, including summary descriptions, key learning points, practical actions, and homework suggestions.
+The personalization engine is the core intelligence of the Persona application, transforming generic lesson content into personalized learning experiences. This engine has been fundamentally refactored to process full lesson transcripts directly rather than compressed templates, enabling significantly richer and more contextually accurate personalization.
 
-When personalizing a lesson, the system first loads the appropriate template based on the lesson number and a mapping of lesson IDs. It then constructs a detailed prompt for the AI model that includes the template content, the student's profile information, and specific instructions for personalization. The prompt directs the AI to address the student by name, consider their motivations and goals, address their fears and concerns, adapt practical recommendations to their preferred practice model, and connect the lesson content to their expected outcomes.
+The new system operates by combining three key inputs: user profile data from surveys, complete lesson transcripts stored in the database, and AI-generated content through OpenAI's GPT-4o model. The transcripts, stored in the `lessons.content.transcription` JSONB field, contain the complete text of each lesson (15-30KB), preserving all contextual details that were previously lost in template compression.
 
-The AI processes this prompt and returns a JSON response with the personalized content, maintaining the same structure as the original template but with customized text. This approach ensures consistency across lessons while allowing for deep personalization. The system handles various template formats and naming conventions, providing flexibility in content management. The resulting personalized content is stored in the database, associating it with the specific user and lesson for future retrieval.
+When personalizing a lesson, the system first loads the transcript from the database using the `loadLessonTranscript` function. It then constructs a detailed prompt for the AI model that includes the full transcript, the student's profile information, and specific instructions for personalization. The prompt directs the AI to address the student by name, consider their motivations and goals, address their fears and concerns, adapt practical recommendations to their preferred practice model, and connect the lesson content to their expected outcomes.
 
-The JSON template structure includes fields such as `summary_short`, `why_watch`, `quick_action`, `social_share`, and `homework_20m`, each designed to address a specific aspect of the learning experience. This structured approach allows the frontend to consistently render personalized content while giving the AI clear guidance on what information to generate for each section. The template-based system also facilitates content updates, as changes to the base templates can be propagated to all users through re-personalization.
+The AI processes this prompt and returns a JSON response with the personalized content in a seven-section structure:
+- **introduction**: 2-3 sentences addressing the student by name
+- **why_it_matters_for_you**: 4-5 sentences connecting lesson content to student goals
+- **key_takeaways**: 3-4 specific outcomes from the transcript
+- **practical_application**: 3-4 sentences for practical implementation
+- **addressing_fears**: 2-3 sentences addressing specific concerns
+- **personalized_homework**: 2-4 sentences for homework assignments
+- **motivational_quote**: 1 sentence for motivation
 
-The personalization logic is centralized in the `lib/services/openai.ts` module, which exports the `personalizeLesson` function that handles the complete personalization workflow including prompt creation, OpenAI API calls, and error handling with fallback to original template content.
+This structured approach ensures consistency across lessons while allowing for deep personalization. The system handles transcript validation, with fallback mechanisms for missing or incomplete transcripts. The resulting personalized content is stored in the database, associating it with the specific user and lesson for future retrieval.
+
+The personalization logic is centralized in the `lib/services/personalization-engine.ts` module, which exports the `generatePersonalizedDescription` function that handles the complete personalization workflow including transcript loading, prompt creation, OpenAI API calls, and error handling with fallback to original template content.
 
 **Section sources**
-- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
-- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L0-L293)
-- [lib/services/openai.ts](file://lib/services/openai.ts#L1-L138) - *Updated in recent commit*
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L101) - *Updated in recent commit*
-- [store/shvz/lessons](file://store/shvz/lessons)
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts#L20-L28) - *New implementation*
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts#L267-L370) - *New implementation*
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170) - *Updated in recent commit*
 - [store/user_profiles.json](file://store/user_profiles.json#L0-L269)
 
 ## External Integrations
 
 The Persona application integrates with several external services to deliver a comprehensive educational experience. The primary integration is with GetCourse, an external LMS platform that serves as the entry point for students. The application provides an iframe-embeddable survey form that can be seamlessly integrated into GetCourse course pages, allowing students to complete their personalization survey without leaving the LMS environment. Upon survey completion, the application sends a message event to the parent window with the student's profile ID and dashboard URL, enabling GetCourse to redirect the student to their personalized content.
 
-The integration with Supabase provides the application with a robust backend-as-a-service solution, handling user authentication, database operations, and file storage. Supabase's PostgreSQL database stores user profiles, lesson information, and personalized content, while its authentication system manages user sessions and access control. The application uses both client-side and server-side Supabase clients to handle different types of database operations, with server-side clients for API routes and client-side clients for frontend interactions.
+The integration with Supabase provides the application with a robust backend-as-a-service solution, handling user authentication, database operations, and file storage. Supabase's PostgreSQL database stores user profiles, lesson information, transcripts, and personalized content, while its authentication system manages user sessions and access control. The application uses both client-side and server-side Supabase clients to handle different types of database operations, with server-side clients for API routes and client-side clients for frontend interactions.
 
-The integration with OpenAI's API enables the AI-powered personalization features that are central to the application's value proposition. The system uses the GPT-4o-mini model to generate personalized lesson content based on user profiles and lesson templates. This integration is designed with appropriate error handling and fallback mechanisms, ensuring that the system remains functional even when AI processing encounters issues. The application manages API rate limits and costs through careful request batching and caching strategies.
+The integration with OpenAI's API enables the AI-powered personalization features that are central to the application's value proposition. The system uses the GPT-4o model to generate personalized lesson content based on full lesson transcripts and user profiles. This represents a significant upgrade from the previous GPT-4o-mini model, enabling processing of complete lesson context. This integration is designed with appropriate error handling and fallback mechanisms, ensuring that the system remains functional even when AI processing encounters issues. The application manages API rate limits and costs through careful request batching and caching strategies.
 
 Additional integrations include support for external video platforms and potential future integrations with other LMS platforms. The system architecture is designed to be extensible, with clear separation between core functionality and integration points, making it relatively straightforward to add new external services as needed.
 
@@ -243,7 +241,7 @@ Additional integrations include support for external video platforms and potenti
 
 ## Fallback Mechanisms
 
-The Persona application incorporates several fallback mechanisms to ensure reliability and graceful degradation when components fail. The most critical fallback occurs in the AI personalization process: when OpenAI API calls fail or return invalid responses, the system falls back to using the original lesson template without personalization. This ensures that students always receive relevant lesson content, even if it lacks personalization. The fallback is implemented in both the `/api/survey` and `/api/persona/personalize-template` endpoints, with error handling that catches API exceptions and returns the base template.
+The Persona application incorporates several fallback mechanisms to ensure reliability and graceful degradation when components fail. The most critical fallback occurs in the AI personalization process: when OpenAI API calls fail or return invalid responses, the system falls back to using a basic personalized template without deep personalization. This ensures that students always receive relevant lesson content, even if it lacks the richness of AI-generated personalization. The fallback is implemented in both the `/api/survey` and `/api/persona/personalize-template` endpoints, with error handling that catches API exceptions and returns the base template.
 
 For user profiles, the system handles both new and returning users through a unified profile management system. If a user with a specific identifier already exists, their profile is updated rather than creating a duplicate. For users without identifiers (guests), the system generates temporary identifiers, allowing them to access personalized content while acknowledging the limitations of this approach. The profile system also handles missing or incomplete survey data gracefully, displaying appropriate messages to users and allowing them to complete their profiles later.
 
@@ -252,8 +250,7 @@ Database operations include comprehensive error handling, with appropriate loggi
 The HTML block generation endpoints include fallback content for various error conditions, such as missing user profiles or lessons. When a user has not completed their survey, the system returns a call-to-action encouraging them to do so, rather than displaying generic or irrelevant content. Similarly, when specific lesson content cannot be found, the system returns a warning message rather than failing silently. These fallbacks ensure that embedded content always provides a meaningful user experience, even when underlying systems encounter issues.
 
 **Section sources**
-- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
-- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L0-L293)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170) - *Updated in recent commit*
 - [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts#L0-L197)
 
 ## Technical Decisions
@@ -262,20 +259,19 @@ The technical architecture of the Persona application reflects several key decis
 
 The use of Supabase as the primary backend service represents a strategic decision to leverage backend-as-a-service capabilities, reducing operational overhead while providing robust database functionality, authentication, and real-time features. This choice allows the development team to focus on application logic rather than infrastructure management, accelerating development and reducing maintenance costs. The integration with PostgreSQL ensures data integrity and supports complex queries needed for reporting and analytics.
 
-The selection of OpenAI's GPT-4o-mini model for AI processing balances cost, performance, and capability. This model provides sufficient intelligence for content personalization tasks while remaining cost-effective for high-volume operations. The decision to use a smaller, more efficient model rather than larger, more expensive alternatives reflects a practical approach to AI integration that considers both functionality and economic sustainability.
+The selection of OpenAI's GPT-4o model for AI processing represents a significant upgrade from the previous GPT-4o-mini model, balancing enhanced capability with cost considerations. This model provides sufficient intelligence for deep content personalization tasks by processing full lesson transcripts (15-30KB) rather than compressed templates (1-2KB), enabling more contextually accurate and richer personalization. The decision to upgrade reflects a strategic investment in content quality that should yield returns through improved student engagement and retention.
 
-The hybrid data storage approach—combining database storage for structured data with file-based storage for lesson templates—demonstrates thoughtful architectural design. This approach leverages the strengths of each storage method: databases for transactional integrity and complex queries, and files for flexible, version-controlled content management. The separation of concerns between dynamic user data and static lesson content enhances system maintainability and scalability.
+The database-centric data storage approach—storing transcripts in the database rather than file system—demonstrates thoughtful architectural design. This approach leverages the strengths of database storage: transactional integrity, complex queries, and scalability, while eliminating the challenges of file system synchronization and template management. The separation of concerns between dynamic user data and static lesson content enhances system maintainability and scalability.
 
 The API design follows RESTful principles with clear endpoints for specific functions, promoting ease of integration and understandability. The inclusion of standardized HTTP utilities from `lib/utils/http.ts` ensures consistent response patterns, proper CORS handling, and uniform error formatting across all endpoints. The decision to return HTML blocks from certain endpoints rather than raw data simplifies integration with external systems, reducing the burden on consuming applications to format and style content.
 
-The refactoring to a service-oriented architecture with centralized business logic in the `lib/services` directory improves code maintainability and reduces duplication. This modular approach allows for easier testing, better separation of concerns, and more efficient development workflows.
+The refactoring to a transcript-driven personalization engine with centralized business logic in the `lib/services/personalization-engine.ts` directory improves code maintainability and reduces duplication. This modular approach allows for easier testing, better separation of concerns, and more efficient development workflows.
 
 **Section sources**
 - [next.config.ts](file://next.config.ts#L0-L15)
 - [lib/supabase/client.ts](file://lib/supabase/client.ts#L0-L10)
 - [lib/openai.ts](file://lib/openai.ts#L0-L7)
-- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L318)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170) - *Updated in recent commit*
 - [app/api/persona/block/route.ts](file://app/api/persona/block/route.ts#L0-L197)
-- [lib/services/openai.ts](file://lib/services/openai.ts#L1-L138) - *Updated in recent commit*
-- [lib/services/lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L101) - *Updated in recent commit*
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts#L20-L28) - *New implementation*
 - [lib/utils/http.ts](file://lib/utils/http.ts#L1-L73) - *Updated in recent commit*

@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-10-23T00:50:06.250Z",
+  "options": {
+    "courseSlug": "kinesio2",
+    "courseTitle": "Kinesio 2",
+    "kinescopeFolderId": "65272142-15a1-47fa-903e-c779f101f149"
+  },
+  "stats": {
+    "total": 5,
+    "successful": 0,
+    "failed": 5,
+    "skipped": 0,
+    "errors": [
+      {
+        "lesson": 1,
+        "error": "Failed to get download URL: Request failed with status code 404",
+        "step": "download"
+      },
+      {
+        "lesson": 2,
+        "error": "Failed to get download URL: Request failed with status code 404",
+        "step": "download"
+      },
+      {
+        "lesson": 3,
+        "error": "Failed to get download URL: Request failed with status code 404",
+        "step": "download"
+      },
+      {
+        "lesson": 4,
+        "error": "Failed to get download URL: Request failed with status code 404",
+        "step": "download"
+      },
+      {
+        "lesson": 5,
+        "error": "Failed to get download URL: Request failed with status code 404",
+        "step": "download"
+      }
+    ]
+  },
+  "elapsed_minutes": 0.1
+}

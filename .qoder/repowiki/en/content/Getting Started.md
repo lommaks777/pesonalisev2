@@ -2,17 +2,26 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [README.md](file://README.md)
-- [package.json](file://package.json)
-- [.env.example](file://.env.example)
-- [lib/supabase/server.ts](file://lib/supabase/server.ts)
-- [lib/openai.ts](file://lib/openai.ts)
-- [scripts/run-migrations.ts](file://scripts/run-migrations.ts)
-- [scripts/import-lessons.ts](file://scripts/import-lessons.ts)
-- [migrations/001_init.sql](file://migrations/001_init.sql)
-- [start_server.sh](file://start_server.sh)
-- [test/env/env.test.ts](file://test/env/env.test.ts)
+- [README.md](file://README.md) - *Updated in recent commit*
+- [package.json](file://package.json) - *Scripts configuration*
+- [.env.example](file://.env.example) - *Environment variables template*
+- [lib/supabase/server.ts](file://lib/supabase/server.ts) - *Supabase client setup*
+- [lib/openai.ts](file://lib/openai.ts) - *OpenAI client initialization*
+- [scripts/run-migrations.ts](file://scripts/run-migrations.ts) - *Database migration runner*
+- [scripts/import-lessons.ts](file://scripts/import-lessons.ts) - *Data seeding script*
+- [migrations/001_init.sql](file://migrations/001_init.sql) - *Initial database schema*
+- [start_server.sh](file://start_server.sh) - *Development server launcher*
+- [test/env/env.test.ts](file://test/env/env.test.ts) - *Environment validation tests*
+- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts) - *Modified in recent commit*
+- [test/api/personalize-template.test.ts](file://test/api/personalize-template.test.ts) - *Updated in recent commit*
 </cite>
+
+## Update Summary
+- Added information about CORS support and default template fallback behavior
+- Updated API request example to reflect new default template behavior with survey call-to-action
+- Enhanced troubleshooting section with guidance on template rendering issues
+- Added references to updated API route and test files for template personalization
+- Clarified behavior for users without profiles
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
@@ -206,10 +215,18 @@ The test suite validates OpenAI API key format. If tests fail:
 - Verify the key has sufficient permissions
 - Regenerate the key in the OpenAI dashboard if invalid
 
+### Template Rendering Issues
+With the recent addition of CORS support and default template fallback:
+- If users without profiles don't see the survey call-to-action, verify the default template contains the correct placeholder
+- Check that the `personalize-template` API route is properly handling fallback cases
+- Review browser console for CORS-related errors when accessing the API
+
 **Section sources**
 - [test/env/env.test.ts](file://test/env/env.test.ts#L0-L66)
 - [lib/supabase/server.ts](file://lib/supabase/server.ts#L0-L27)
 - [scripts/run-migrations.ts](file://scripts/run-migrations.ts#L0-L48)
+- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts)
+- [test/api/personalize-template.test.ts](file://test/api/personalize-template.test.ts)
 
 ## Making API Requests
 
@@ -221,8 +238,19 @@ curl http://localhost:3000/api/lessons
 
 This returns a JSON response containing lesson data. The API routes are located in the `app/api/` directory and follow Next.js App Router conventions. Protected routes use Supabase authentication, while public routes provide lesson content and survey functionality.
 
+When requesting personalized content for users without profiles, the system now returns a default template with a survey call-to-action:
+
+```bash
+curl -X POST http://localhost:3000/api/persona/personalize-template \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "test-user", "lesson_id": "1"}'
+```
+
+The response will include HTML with the default template containing a prompt to complete the survey.
+
 **Section sources**
 - [app/api/lessons/route.ts](file://app/api/lessons/route.ts)
+- [app/api/persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts)
 
 ## Configuration Files
 

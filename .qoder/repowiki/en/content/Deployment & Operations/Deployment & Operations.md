@@ -2,8 +2,8 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [vercel.json](file://vercel.json)
-- [railway.json](file://railway.json)
+- [vercel.json](file://vercel.json) - *Updated in recent commit*
+- [railway.json](file://railway.json) - *Updated in recent commit*
 - [RAILWAY_DEPLOYMENT_FINAL.md](file://RAILWAY_DEPLOYMENT_FINAL.md)
 - [VERCEL_DEPLOY.md](file://VERCEL_DEPLOY.md)
 - [scripts/run-migrations.ts](file://scripts/run-migrations.ts)
@@ -13,7 +13,20 @@
 - [msw/handlers.ts](file://msw/handlers.ts)
 - [start_server.sh](file://start_server.sh)
 - [SYSTEM_OVERVIEW.md](file://SYSTEM_OVERVIEW.md)
+- [DEPLOYMENT_CHECKLIST.md](file://DEPLOYMENT_CHECKLIST.md) - *Added in recent commit*
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts) - *Created in recent commit*
+- [app/api/survey/route.ts](file://app/api/survey/route.ts) - *Modified in recent commit*
+- [scripts/update-user-personalizations.ts](file://scripts/update-user-personalizations.ts) - *Updated in recent commit*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated documentation to reflect the new transcript-based personalization engine
+- Added detailed phased rollout plan for the personalization engine refactoring
+- Updated post-deployment setup with new migration and personalization scripts
+- Enhanced monitoring and rollback procedures for the new system
+- Added cost analysis and performance metrics for the new personalization approach
+- Updated environment variable requirements and verification procedures
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -28,11 +41,12 @@
 10. [Conclusion](#conclusion)
 
 ## Introduction
-This document provides comprehensive guidance for deploying and operating the persona application in production environments. It covers deployment procedures for both Vercel and Railway platforms, including configuration requirements, environment variables, and platform-specific considerations. The document also details post-deployment setup, monitoring strategies, backup procedures, scaling considerations, and verification processes to ensure system readiness.
+This document provides comprehensive guidance for deploying and operating the persona application in production environments. It covers deployment procedures for both Vercel and Railway platforms, including configuration requirements, environment variables, and platform-specific considerations. The document also details post-deployment setup, monitoring strategies, backup procedures, scaling considerations, and verification processes to ensure system readiness. Special attention is given to the new transcript-based personalization engine and its deployment requirements.
 
 **Section sources**
 - [RAILWAY_DEPLOYMENT_FINAL.md](file://RAILWAY_DEPLOYMENT_FINAL.md#L0-L152)
 - [VERCEL_DEPLOY.md](file://VERCEL_DEPLOY.md#L0-L37)
+- [DEPLOYMENT_CHECKLIST.md](file://DEPLOYMENT_CHECKLIST.md#L0-L292)
 
 ## Vercel Deployment
 Deploying the persona application on Vercel requires specific configuration and environment variables. The platform automatically detects the Next.js framework, but custom build settings can be configured if needed.
@@ -49,6 +63,8 @@ The `vercel.json` file specifies the framework as Next.js:
 The following environment variables must be configured in the Vercel dashboard under **Settings → Environment Variables**:
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key
+- `OPENAI_API_KEY`: API key for OpenAI services (required for personalization engine)
+- `SUPABASE_SERVICE_ROLE_KEY`: Service role key for administrative operations (required for scripts)
 
 ### Build Settings
 Vercel uses the following build configuration:
@@ -93,6 +109,9 @@ The `railway.json` file defines the deployment configuration:
 The following environment variables must be set in the Railway dashboard:
 - `OPENAI_API_KEY`: API key for OpenAI services
 - `KINESCOPE_API_KEY`: API key for Kinescope video processing
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY`: Service role key for administrative operations
 
 ### Project Optimization
 Before deployment, optimize the project size by:
@@ -160,12 +179,123 @@ This script:
 
 The import process uses the `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` environment variables for database access.
 
+### Personalization Engine Deployment
+The new transcript-based personalization engine requires a phased rollout:
+
+#### Phase 1: Silent Launch
+**Objective**: New system active for new submissions only
+- Deploy code to production
+- New survey submissions use new engine automatically
+- Existing user personalizations unchanged
+- Monitor error logs for 24-48 hours
+- Verify new personalizations stored correctly
+- Check API response times (acceptable: <60s for full survey)
+
+**Success Criteria**:
+- Zero errors in production logs
+- All new survey submissions complete successfully
+- Quality spot-check: 3-5 new personalizations reviewed
+
+#### Phase 2: Test User Migration
+**Objective**: Validate new engine with existing user data
+**Script**: `scripts/update-user-personalizations.ts` (updated)
+```bash
+# Example usage
+npx tsx --env-file=.env.local scripts/update-user-personalizations.ts 21179358
+```
+
+**Validation Steps**:
+1. Run script for test user
+2. Verify all 12 lessons regenerated
+3. Review quality of generated content
+4. Compare with old personalizations (manual review)
+5. Collect feedback from test user (if possible)
+
+**Success Criteria**:
+- 100% regeneration success rate
+- Quality equal or better than old system
+- No errors during generation
+- Database integrity maintained
+
+#### Phase 3: Gradual Rollout
+**Objective**: Migrate all existing users
+**Options**:
+**Option A: Batch Migration** (Recommended)
+```bash
+# Migrate users in batches of 10
+for userId in $(cat user_list.txt | head -10); do
+  npx tsx --env-file=.env.local scripts/update-user-personalizations.ts $userId
+  sleep 30  # Rate limiting
+done
+```
+
+**Option B: On-Demand Migration**
+- Wait for users to re-submit survey
+- New personalizations generated automatically
+- Gradual, natural migration over time
+
+**Recommended**: Option A for active users, Option B for inactive
+
+**Timeline**:
+- Week 1: Migrate top 10% active users
+- Week 2: Migrate next 30% active users
+- Week 3: Migrate remaining active users
+- Ongoing: On-demand for inactive users
+
+#### Phase 4: Template Archive
+**Objective**: Clean up deprecated files
+```bash
+# Create archive directory
+mkdir -p store/shvz/_archived_templates
+
+# Move template JSON files
+mv store/shvz/*-final.json store/shvz/_archived_templates/
+mv store/shvz/*-final-backup.json store/shvz/_archived_templates/
+
+# Keep transcripts and other essential files
+# Do NOT move *.txt files (these are still used)
+```
+
+**Success Criteria**:
+- Template files archived but preserved
+- No file system dependencies in active code
+- Documentation updated
+
 **Section sources**
 - [scripts/run-migrations.ts](file://scripts/run-migrations.ts#L0-L48)
 - [scripts/import-lessons.ts](file://scripts/import-lessons.ts#L0-L264)
+- [DEPLOYMENT_CHECKLIST.md](file://DEPLOYMENT_CHECKLIST.md#L0-L292)
+- [lib/services/personalization-engine.ts](file://lib/services/personalization-engine.ts#L0-L371)
+- [app/api/survey/route.ts](file://app/api/survey/route.ts#L0-L170)
+- [scripts/update-user-personalizations.ts](file://scripts/update-user-personalizations.ts#L0-L233)
 
 ## Monitoring and Logging
 Effective monitoring and logging are essential for maintaining application health and diagnosing issues.
+
+### Technical Metrics to Track
+**Performance**:
+- Average generation time per lesson
+- API timeout rate
+- Success/failure rate
+- Retry usage frequency
+
+**Cost**:
+- OpenAI API usage (tokens)
+- Daily API costs
+- Cost per student
+- Compare to projected $0.84/student
+
+**Quality**:
+- Manual review of 10 random personalizations/day
+- Quality score tracking
+- Field population rate
+
+### Business Metrics to Track
+**Engagement** (measure after 30 days):
+- Lesson view rate (target: +20%)
+- Time to first lesson view (target: -20%)
+- Course completion rate (target: +15%)
+- Student satisfaction (target: ≥4.5/5)
 
 ### Log Files
 The application generates the following log files in the `store/` directory:
@@ -191,6 +321,7 @@ The system implements both automatic and manual error handling:
 **Section sources**
 - [SYSTEM_OVERVIEW.md](file://SYSTEM_OVERVIEW.md#L135-L163)
 - [start_server.sh](file://start_server.sh#L0-L60)
+- [DEPLOYMENT_CHECKLIST.md](file://DEPLOYMENT_CHECKLIST.md#L0-L292)
 
 ## Backup Procedures
 Regular backups are critical for data protection and disaster recovery.
@@ -227,6 +358,7 @@ As traffic increases, implement scaling strategies to maintain performance.
 - Implement browser caching for static assets
 - Use CDN for media files
 - Cache API responses where appropriate
+- Consider Redis caching for transcripts (future optimization)
 
 ### Database Optimization
 - Ensure proper indexing on frequently queried fields
@@ -240,9 +372,24 @@ For high-traffic scenarios:
 - Monitor resource utilization
 - Set up auto-scaling where supported
 
+### Performance Considerations for Personalization Engine
+The new personalization engine has different performance characteristics:
+- **Processing Time**: 25-35 seconds per lesson (vs 3-5 seconds previously)
+- **AI Model**: GPT-4o (vs GPT-4o-mini previously)
+- **Context Size**: 15-30KB (vs 1-2KB previously)
+- **Cost per Lesson**: ~$0.015-0.020 (vs ~$0.005 previously)
+- **Cost per Student**: ~$0.84 (vs ~$0.06 previously)
+
+**Mitigation Strategies**:
+- Implement async/queue-based processing (future)
+- Consider transcript truncation (keep first 15,000 chars)
+- Add progress indicators for users
+- Batch operations for existing user migrations
+
 **Section sources**
 - [RAILWAY_DEPLOYMENT_FINAL.md](file://RAILWAY_DEPLOYMENT_FINAL.md#L0-L152)
 - [VERCEL_DEPLOY.md](file://VERCEL_DEPLOY.md#L0-L37)
+- [DEPLOYMENT_CHECKLIST.md](file://DEPLOYMENT_CHECKLIST.md#L0-L292)
 
 ## Health Check and Deployment Verification
 Verify deployment success and monitor system health using built-in endpoints.
@@ -271,10 +418,57 @@ This endpoint returns a 200 status with `{ "status": "ok" }` when the applicatio
 - [ ] Database connection is established
 - [ ] Static assets are served correctly
 - [ ] API routes are functional
+- [ ] Personalization engine generates content from transcripts
+- [ ] New personalization structure (7 sections) is correctly implemented
+
+### Rollback Plan
+**Trigger Conditions**: Rollback if any of:
+- Error rate >5% for new personalizations
+- Quality degradation confirmed
+- Costs exceed 2x projection
+- Critical bugs discovered
+
+**Rollback Procedure**:
+1. **Immediate Mitigation**:
+```typescript
+// In app/api/survey/route.ts
+// Comment out new engine, uncomment old:
+
+// OLD (rollback to this):
+// const template = await loadLessonTemplate(lesson.lesson_number);
+// const personalization = await personalizeLesson(template, survey, userName, lessonInfo);
+
+// NEW (currently active):
+const transcriptData = await loadLessonTranscript(lesson.id);
+const personalization = await generatePersonalizedDescription(...);
+```
+
+2. **Redeploy**:
+```bash
+git revert <commit-hash>  # Revert to last stable version
+vercel deploy --prod
+```
+
+3. **Communicate**:
+- Notify team of rollback
+- Document root cause
+- Plan fix
+
+**Recovery Time**: <15 minutes
 
 **Section sources**
 - [msw/handlers.ts](file://msw/handlers.ts#L0-L6)
 - [SYSTEM_OVERVIEW.md](file://SYSTEM_OVERVIEW.md#L135-L163)
+- [DEPLOYMENT_CHECKLIST.md](file://DEPLOYMENT_CHECKLIST.md#L0-L292)
 
 ## Conclusion
-Deploying and operating the persona application in production requires careful consideration of platform options, configuration requirements, and operational procedures. Vercel offers an optimized environment for the Next.js frontend with serverless functions, while Railway provides a flexible platform for the PHP-based server implementation. Both platforms require proper environment variable configuration and benefit from the application's optimized structure. Post-deployment setup, including database migrations and data import, is essential for system readiness. Ongoing monitoring, logging, backup procedures, and scaling strategies ensure reliable operation as traffic grows. The health check endpoint and verification process provide confidence in deployment success and system stability.
+Deploying and operating the persona application in production requires careful consideration of platform options, configuration requirements, and operational procedures. Vercel offers an optimized environment for the Next.js frontend with serverless functions, while Railway provides a flexible platform for the PHP-based server implementation. Both platforms require proper environment variable configuration and benefit from the application's optimized structure.
+
+The new transcript-based personalization engine represents a fundamental architectural improvement that eliminates the information bottleneck in the previous template-based system. By processing full lesson transcripts directly with GPT-4o, the new system generates significantly richer, more deeply personalized content that demonstrates concrete value to students. The increased cost per student ($0.78) is a strategic investment in content quality that should yield returns through improved retention.
+
+Post-deployment setup, including database migrations and data import, is essential for system readiness. Ongoing monitoring, logging, backup procedures, and scaling strategies ensure reliable operation as traffic grows. The health check endpoint and verification process provide confidence in deployment success and system stability. The phased rollout plan and rollback procedures ensure a safe transition to the new personalization system.
+
+**Section sources**
+- [RAILWAY_DEPLOYMENT_FINAL.md](file://RAILWAY_DEPLOYMENT_FINAL.md#L0-L152)
+- [VERCEL_DEPLOY.md](file://VERCEL_DEPLOY.md#L0-L37)
+- [DEPLOYMENT_CHECKLIST.md](file://DEPLOYMENT_CHECKLIST.md#L0-L292)

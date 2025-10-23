@@ -2,30 +2,29 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts) - *Updated in commit cad6b20*
-- [block/route.ts](file://app/api/persona/block/route.ts) - *Updated in commit cad6b20*
-- [html-formatter.ts](file://lib/services/html-formatter.ts) - *Added formatDefaultTemplateContent in commit cad6b20*
-- [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated in commit cad6b20*
-- [openai.ts](file://lib/services/openai.ts) - *Updated in commit cad6b20*
-- [personalization.ts](file://lib/services/personalization.ts) - *Updated in commit cad6b20*
-- [server.ts](file://lib/supabase/server.ts)
-- [lesson.json](file://store/shvz/lessons/01/lesson.json)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts) - *Replaced template-based engine with transcript-driven generation in commit d0cc268*
+- [survey/route.ts](file://app/api/survey/route.ts) - *Updated to use new personalization engine in commit d0cc268*
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Deprecated in favor of database transcript storage in commit d0cc268*
+- [openai.ts](file://lib/services/openai.ts) - *Legacy personalization functions deprecated in commit d0cc268*
+- [html-formatter.ts](file://lib/services/html-formatter.ts) - *Updated to support new content structure in commit d0cc268*
+- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts) - *Legacy endpoint using deprecated template system*
 </cite>
 
 ## Update Summary
 **Changes Made**   
-- Added comprehensive documentation for default template functionality when user profiles are missing
-- Updated error handling section to reflect new fallback behavior with default templates
-- Enhanced workflow overview to include default template rendering path
-- Added new section on default template formatting logic
-- Updated API integration details for both personalize-template and block endpoints
-- Improved content formatting logic section with new default template structure
-- Added new diagram for default template rendering flow
+- Completely refactored the personalization engine architecture from template-based to transcript-driven generation
+- Replaced legacy `lesson-templates.ts` file system templates with database-stored transcripts
+- Upgraded from GPT-4o-mini to GPT-4o for enhanced long-context processing
+- Introduced new 7-section content structure for richer personalization
+- Updated API endpoints to use the new personalization engine
+- Deprecated legacy template loading and personalization functions
+- Enhanced prompt engineering with full transcript and survey context
+- Updated content formatting to support new structure
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Workflow Overview](#workflow-overview)
-3. [Template Loading Strategy](#template-loading-strategy)
+3. [Transcript-Based Architecture](#transcript-based-architecture)
 4. [AI Prompt Engineering](#ai-prompt-engineering)
 5. [Content Formatting Logic](#content-formatting-logic)
 6. [Default Template Rendering](#default-template-rendering)
@@ -36,111 +35,100 @@
 11. [Customization Guide](#customization-guide)
 
 ## Introduction
-The AI-powered personalization engine is the core component of the persona application, responsible for delivering customized lesson content based on user profiles. This system integrates multiple services including Supabase for data storage, OpenAI's GPT-4o-mini for content generation, and a file-based template system to create personalized learning experiences. The engine has been recently enhanced with robust fallback mechanisms, including the ability to serve default lesson templates when user profiles are unavailable, ensuring users always receive meaningful content.
+The AI-powered personalization engine has undergone a fundamental architectural transformation, replacing the legacy template-based system with a direct transcript-driven generation approach. This new architecture eliminates the information bottleneck of the previous system by processing full lesson transcripts (8,000-18,000 characters) directly with GPT-4o, rather than working with compressed JSON templates. The engine now generates richer, more contextually relevant personalized content by analyzing complete lesson material against detailed user profiles in a single AI call, significantly improving content quality and student engagement.
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L45)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L30)
 
 ## Workflow Overview
-The personalization engine follows a six-step process to generate customized content, now implemented through modular services:
+The personalization engine follows a streamlined five-step process to generate deeply personalized content:
 
-1. **Receive personalization request**: Accepts user ID and lesson number via API
-2. **Load base JSON template**: Retrieves lesson template from file system using `loadLessonTemplate` service
+1. **Receive personalization request**: Accepts user profile data via API
+2. **Load lesson transcript**: Retrieves full lesson transcript from database
 3. **Retrieve user profile**: Fetches user data from Supabase database
-4. **Send context to AI model**: Uses `personalizeLesson` service to combine template and profile data for GPT-4o-mini processing
+4. **Send context to AI model**: Uses `generatePersonalizedDescription` to combine transcript and profile data for GPT-4o processing
 5. **Process AI response**: Parses and validates generated JSON content with fallback mechanisms
-6. **Generate HTML output**: Formats personalized content using `formatPersonalizedContent` service
-
-When a user profile is not found, the engine follows an alternative path:
-- Load the base template using `loadLessonTemplate`
-- Format the default template content using `formatDefaultTemplateContent`
-- Return HTML with a call-to-action to complete the user survey
+6. **Generate HTML output**: Formats personalized content using `formatPersonalizedContent`
 
 ```mermaid
 sequenceDiagram
 participant Client as "Client Application"
-participant API as "Personalize API"
+participant API as "Survey API"
 participant Supabase as "Supabase Database"
-participant FileSystem as "Template Files"
-participant OpenAI as "GPT-4o-mini Model"
+participant OpenAI as "GPT-4o Model"
 participant Services as "Service Layer"
-Client->>API : POST /api/persona/personalize-template
-API->>Supabase : Get user profile by user_id
+Client->>API : POST /api/survey with user data
+API->>Supabase : Create user profile
 Supabase-->>API : Profile data with survey
-API->>Supabase : Get lesson by lesson_number
-Supabase-->>API : Lesson metadata
-API->>Services : loadLessonTemplate(lesson_number)
-Services->>FileSystem : Search template files
-FileSystem-->>Services : JSON template
-Services-->>API : Template object
-API->>Services : personalizeLesson(template, survey, name, lessonInfo)
-Services->>OpenAI : Send prompt with context
-OpenAI-->>Services : Personalized JSON response
+API->>Supabase : Get all lessons with transcripts
+Supabase-->>API : Lessons with full transcripts
+API->>Services : generatePersonalizedDescription(transcript, survey)
+Services->>OpenAI : Send prompt with full context
+OpenAI-->>Services : Rich personalized JSON response
 Services-->>API : Processed content
-API->>Services : savePersonalization(profileId, lessonId, content)
-Services->>Supabase : Upsert to database
-Supabase-->>Services : Confirmation
-Services-->>API : Success
+API->>Supabase : Save personalization to database
+Supabase-->>API : Confirmation
 API->>Services : formatPersonalizedContent(content)
 Services-->>API : HTML string
-API->>Client : Return HTML and cached flag
-Note over API : If profile not found
-API->>Services : formatDefaultTemplateContent(template, lessonInfo)
-Services-->>API : Default HTML with CTA
-API->>Client : Return default HTML
+API->>Client : Return success with first lesson preview
 ```
 
 **Diagram sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L45-L128)
-- [server.ts](file://lib/supabase/server.ts#L1-L28)
+- [survey/route.ts](file://app/api/survey/route.ts#L45-L170)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L267-L370)
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L45-L128)
+- [survey/route.ts](file://app/api/survey/route.ts#L45-L170)
 
-## Template Loading Strategy
-The engine implements a robust template loading mechanism with lesson ID mapping and fallback capabilities through the `loadLessonTemplate` service. Templates are stored in the `store/shvz` directory with a naming convention that supports multiple formats.
+## Transcript-Based Architecture
+The engine has been completely redesigned to eliminate the intermediate template generation stage. Instead of the previous three-stage process (transcription → template → personalization), the new architecture implements direct generation from full lesson transcripts.
 
-The system uses a lesson number to ID mapping function to locate the correct template file. Three candidate filename patterns are checked in order:
-1. `{lesson_number}-{lesson_number}-{id}-final.json`
-2. `{lesson_number}-{id}-final.json` 
-3. `{id}-final.json`
+The system now stores complete lesson transcripts in the database within the `lessons.content` JSONB field, with the following structure:
+```json
+{
+  "transcription": "Full lesson transcript text...",
+  "transcription_length": 12453,
+  "transcription_source": "whisper-api",
+  "transcription_date": "2024-10-08"
+}
+```
 
-This hierarchical approach ensures backward compatibility while supporting the current naming convention. The lesson ID mapping is maintained in a lookup table within the `getLessonTemplateId` function. If no template file is found, the system returns a default template structure to ensure graceful degradation.
+This approach provides several advantages:
+- **Eliminates information loss**: The AI model processes full transcripts instead of compressed summaries
+- **Single AI call**: Combines transcript analysis and personalization in one step
+- **Richer context**: GPT-4o can analyze specific techniques, examples, and learning moments from the full lesson
+- **Deeper personalization**: Enables semantic matching between lesson content and student profiles
+
+The legacy template loading system has been deprecated, and the `loadLessonTemplate` function in `lesson-templates.ts` is now marked for removal.
 
 ```mermaid
 flowchart TD
-Start([Start]) --> CheckLessonNumber["Validate lesson_number parameter"]
-CheckLessonNumber --> GetLessonId["Get lesson ID from mapping table"]
-GetLessonId --> BuildCandidates["Build 3 candidate file paths"]
-BuildCandidates --> CheckFile1["Check first candidate path"]
-CheckFile1 --> FileExists1{File exists?}
-FileExists1 --> |Yes| ReturnPath["Return found path"]
-FileExists1 --> |No| CheckFile2["Check second candidate path"]
-CheckFile2 --> FileExists2{File exists?}
-FileExists2 --> |Yes| ReturnPath
-FileExists2 --> |No| CheckFile3["Check third candidate path"]
-CheckFile3 --> FileExists3{File exists?}
-FileExists3 --> |Yes| ReturnPath
-FileExists3 --> |No| ReturnDefault["Return default template"]
-ReturnPath --> LoadTemplate["Load and parse JSON template"]
-LoadTemplate --> End([Template loaded successfully])
-ReturnDefault --> End
+A[Video Lesson] --> |Transcription| B[Full Transcript<br/>8-18k chars]
+B --> |Storage| C[Database: lessons.content<br/>JSONB field]
+D[Student Survey] --> |Submission| E[Profile Creation<br/>Supabase]
+E --> |Trigger| F[Personalization Workflow]
+C --> |Load Transcript| F
+F --> |Single AI Call<br/>GPT-4o with Full Context| G[Rich Personalized Content]
+G --> |Storage| H[Database<br/>personalized_lesson_descriptions]
+style F fill:#ccffcc
+style G fill:#ccffcc
 ```
 
 **Diagram sources**
-- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L104-L196)
+- [survey/route.ts](file://app/api/survey/route.ts#L100-L120)
 
 **Section sources**
-- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L63-L120)
-- [lesson-templates.ts](file://lib/services/lesson-templates.ts#L123-L140)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L63-L93)
+- [survey/route.ts](file://app/api/survey/route.ts#L100-L120)
 
 ## AI Prompt Engineering
-The personalization engine employs a structured prompt engineering approach to ensure consistent and relevant AI-generated content. The prompt template is designed to guide GPT-4o-mini in creating personalized lesson content based on user profile data.
+The personalization engine employs an advanced prompt engineering approach that leverages the full context of lesson transcripts and user profiles. The prompt is designed to guide GPT-4o in creating deeply personalized lesson content with concrete references to both the lesson material and student context.
 
 Key elements of the prompt include:
-- **Role specification**: "You are an experienced massage instructor named Anastasia Fomina"
-- **Input context**: Complete lesson template and user survey data
-- **Personalization requirements**: Five specific adaptation criteria
+- **Role specification**: "You are an experienced course methodologist and copywriter"
+- **Input context**: Complete lesson transcript (8-18k characters) and user survey data
+- **Personalization requirements**: Seven specific adaptation criteria with concrete examples
 - **Output format**: Strict JSON structure with defined fields
 - **Response constraints**: Valid JSON only, no additional text
 
@@ -153,11 +141,17 @@ The prompt incorporates user-specific data points:
 - Expected results
 - Practice model
 
+The new prompt structure emphasizes concrete references to lesson content, requiring the AI to:
+- Analyze specific techniques and examples from the transcript
+- Map content to the student's fears and goals
+- Create actionable homework tailored to their practice environment
+- Avoid generic platitudes in favor of specific, contextual advice
+
 ```mermaid
 flowchart LR
-A[Base Template] --> C[Prompt Assembly]
+A[Full Transcript] --> C[Prompt Assembly]
 B[User Profile Data] --> C
-C --> D[GPT-4o-mini Model]
+C --> D[GPT-4o Model]
 D --> E[Validated JSON Output]
 subgraph "Prompt Components"
 A
@@ -173,27 +167,27 @@ end
 ```
 
 **Diagram sources**
-- [openai.ts](file://lib/services/openai.ts#L139-L208)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L104-L196)
 
 **Section sources**
-- [openai.ts](file://lib/services/openai.ts#L139-L208)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L104-L196)
 
 ## Content Formatting Logic
-The engine transforms AI-generated JSON content into structured HTML for frontend display using the `formatPersonalizedContent` service. The formatting function checks for the presence of each content field and conditionally includes corresponding HTML sections.
+The engine transforms AI-generated JSON content into structured HTML for frontend display using the `formatPersonalizedContent` service. The formatting function supports multiple content formats for backward compatibility while primarily handling the new 7-section structure.
 
-The generated HTML includes:
-- **Introduction section**: Brief lesson overview with personal addressing
-- **Key points**: 4-6 bullet points summarizing lesson content
-- **Practical tips**: 3-5 actionable instruction points
-- **Important notes**: Contraindications and safety information (conditional)
-- **Equipment preparation**: Equipment list and setup instructions (conditional)
-- **Homework**: 1-2 sentence assignment adapted to practice model
-- **Motivational line**: Inspirational closing statement
+The new content structure includes:
+- **introduction**: 2-3 sentences with personal addressing
+- **why_it_matters_for_you**: 4-5 sentences connecting lesson content to student goals
+- **key_takeaways**: 3-4 specific learning outcomes from the transcript
+- **practical_application**: 3-4 sentences on applying techniques to the student's practice model
+- **addressing_fears**: 2-3 sentences directly addressing the student's concerns
+- **personalized_homework**: 2-4 sentences with tailored assignments
+- **motivational_quote**: 1 inspirational sentence
 
-Each section is wrapped in appropriate CSS classes for styling, with conditional rendering ensuring only available content is displayed. The output is wrapped in a "persona-block" container for consistent presentation. The service uses template literals with conditional expressions to generate the final HTML structure.
+The service detects the content format (old, new, or alternative) and transforms it appropriately before generating HTML. Each section is wrapped in appropriate CSS classes for styling, with conditional rendering ensuring only available content is displayed.
 
 **Section sources**
-- [html-formatter.ts](file://lib/services/html-formatter.ts#L5-L92)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L22-L143)
 
 ## Default Template Rendering
 When a user profile is not found, the engine serves a default template with a call-to-action to complete the survey. This functionality is implemented through the `formatDefaultTemplateContent` function in the HTML formatter service.
@@ -216,11 +210,11 @@ E --> F[Return Default HTML]
 ```
 
 **Diagram sources**
-- [html-formatter.ts](file://lib/services/html-formatter.ts#L143-L223)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L198-L278)
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L80-L90)
 
 **Section sources**
-- [html-formatter.ts](file://lib/services/html-formatter.ts#L143-L223)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L198-L278)
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L80-L90)
 
 ## Performance Considerations
@@ -232,133 +226,118 @@ The modular service architecture improves performance by:
 - Reducing code duplication across endpoints
 - Enabling easier optimization of individual components
 
-### Caching Mechanism
-The system implements response caching through the `flush` parameter. When `flush` is false (default), the `cached: true` flag is returned in the response, indicating that cached content was served. This reduces unnecessary AI processing for repeat requests.
-
 ### Processing Optimization
-- Template files are loaded directly from the file system rather than through database queries
+- Transcripts are loaded directly from the database rather than file system
 - User profile and lesson data are retrieved in single database queries
-- AI processing only occurs when both user profile and template are available
+- AI processing occurs with complete context in a single call
 - Service functions include error handling to prevent cascading failures
 
+### Cost Management
+- Upgraded to GPT-4o for better long-context understanding
+- Implemented retry logic with adjusted temperature to improve success rate
+- Monitored token usage to balance quality and cost
+
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L126-L128)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L267-L370)
 
 ## Error Handling and Fallbacks
 The engine implements comprehensive error handling and fallback mechanisms:
 
-### User Profile Not Found
-When a user profile is not found, the system returns a default template content with a survey call-to-action, rather than a generic error message. This ensures users receive educational content while being prompted to complete their profile.
-
-### Lesson Not Found
-If the requested lesson number doesn't exist in the database, an error message is returned indicating the lesson was not found.
-
-### Template Not Found
-When no template file matches the lesson ID candidates, the system returns a default template structure rather than failing completely.
-
 ### AI Processing Failure
-If the OpenAI API call fails, the system gracefully falls back to returning the original template content with default values, ensuring that users always receive some content.
+If the OpenAI API call fails, the system implements a two-tier fallback:
+1. Retry once with lower temperature (0.5)
+2. If retry fails, return fallback content with basic personalization
+
+### Transcript Not Found
+When no transcript is available in the database:
+- Log warning and skip personalization for that lesson
+- Continue processing remaining lessons
+- Return partial success response
+
+### Survey Data Missing
+For incomplete survey submissions:
+- Use available data for personalization
+- Fill missing fields with generic but relevant content
+- Prioritize core personalization elements
 
 ```mermaid
 flowchart TD
-A[Start Request] --> B{User Profile Found?}
-B --> |No| C[Return default template with survey CTA]
-B --> |Yes| D{Lesson Found?}
-D --> |No| E[Return lesson not found]
-D --> |Yes| F{Template Found?}
-F --> |No| G[Return default template]
-F --> |Yes| H{AI Processing Success?}
-H --> |No| I[Return original template with defaults]
-H --> |Yes| J[Return personalized content]
+A[Start Request] --> B{Transcript Found?}
+B --> |No| C[Skip lesson, log warning]
+B --> |Yes| D{AI Processing Success?}
+D --> |No| E[Retry with lower temperature]
+E --> F{Retry Success?}
+F --> |Yes| G[Return personalized content]
+F --> |No| H[Return fallback content]
+D --> |Yes| G
 ```
 
 **Diagram sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L60-L84)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L300-L370)
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L60-L84)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L300-L370)
 
 ## API Integration
 The personalization engine exposes RESTful API endpoints and integrates with external services:
 
 ### Main Endpoint
-**POST** `/api/persona/personalize-template`
+**POST** `/api/survey`
 
 Request body:
 ```json
 {
-  "user_id": "string",
-  "lesson_number": "number",
-  "flush": "boolean (optional)"
+  "real_name": "string",
+  "course": "string",
+  "motivation": ["career change", "help others"],
+  "target_clients": "office workers",
+  "skills_wanted": "pain relief techniques",
+  "fears": ["hurting clients"],
+  "wow_result": "become confident therapist",
+  "practice_model": "friend with back pain",
+  "uid": "string (optional)"
 }
 ```
 
 Response:
 ```json
 {
-  "ok": "boolean",
-  "html": "string",
-  "cached": "boolean"
-}
-```
-
-### Block Endpoint
-**POST** `/api/persona/block`
-
-Request body:
-```json
-{
-  "user_id": "string",
-  "lesson": "string",
-  "title": "string",
-  "flush": "boolean (optional)"
-}
-```
-
-Response:
-```json
-{
-  "ok": "boolean",
-  "html": "string",
-  "cached": "boolean"
+  "success": "boolean",
+  "profileId": "string",
+  "userIdentifier": "string",
+  "message": "string",
+  "firstLessonPreview": {
+    "html": "string",
+    "lessonNumber": "number",
+    "lessonTitle": "string"
+  }
 }
 ```
 
 ### External Service Integration
 - **Supabase**: Used for user profile and lesson data storage/retrieval
-- **OpenAI**: GPT-4o-mini model for content personalization
-- **File System**: Template storage and retrieval
-- **Service Layer**: Modular components for template loading, personalization, formatting, and database operations
+- **OpenAI**: GPT-4o model for content personalization
+- **Database**: Transcript storage and retrieval
+- **Service Layer**: Modular components for transcript loading, personalization, formatting, and database operations
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L45)
-- [block/route.ts](file://app/api/persona/block/route.ts#L1-L45)
-- [personalization.ts](file://lib/services/personalization.ts#L20-L47)
+- [survey/route.ts](file://app/api/survey/route.ts#L1-L170)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L267-L370)
 
 ## Examples and Usage
-### Input Template Example
+### Input Transcript Example
 ```json
 {
-  "introduction": "Learn the fundamentals of massage technique",
-  "key_points": [
-    "Understand basic hand positioning",
-    "Learn pressure control techniques",
-    "Master client communication"
-  ],
-  "practical_tips": [
-    "Start with light pressure",
-    "Check in with your client",
-    "Maintain proper body alignment"
-  ],
-  "homework": "Practice basic strokes for 15 minutes",
-  "motivational_line": "Every session brings you closer to mastery"
+  "transcription": "In this lesson, we'll cover the fundamentals of Swedish massage techniques. Start with effleurage using the palmar surface of your hands, applying light to medium pressure in long, flowing strokes. Focus on the back muscles, particularly the trapezius and latissimus dorsi. Use your thumbs for deeper pressure on trigger points, but always check in with your client about comfort levels...",
+  "transcription_length": 12453,
+  "transcription_source": "whisper-api"
 }
 ```
 
 ### User Profile Data
 ```json
 {
-  "name": "Alexey",
+  "real_name": "Alexey",
   "survey": {
     "motivation": ["career change", "help others"],
     "target_clients": "office workers",
@@ -371,18 +350,18 @@ Response:
 ```
 
 ### Output Personalization
-The AI generates a JSON response that is formatted into HTML containing personalized sections addressing the user's specific context, goals, and concerns.
+The AI generates a JSON response that is formatted into HTML containing personalized sections addressing the user's specific context, goals, and concerns, with concrete references to techniques from the lesson transcript.
 
 **Section sources**
-- [lesson.json](file://store/shvz/lessons/01/lesson.json#L1-L8)
-- [openai.ts](file://lib/services/openai.ts#L139-L208)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L267-L370)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L22-L143)
 
 ## Customization Guide
 ### Modifying AI Prompts
-To modify the AI prompts for different content styles, edit the `createPersonalizationPrompt` function in `openai.ts`. Key areas for customization:
+To modify the AI prompts for different content styles, edit the `createPersonalizationPrompt` function in `personalization-engine.ts`. Key areas for customization:
 
 1. **Role specification**: Change the instructor persona
-2. **Personalization requirements**: Modify the five adaptation criteria
+2. **Personalization requirements**: Modify the seven adaptation criteria
 3. **Output structure**: Add or remove JSON fields
 4. **Tone and style**: Adjust language formality and approach
 
@@ -394,9 +373,9 @@ To support additional content fields:
 
 ### Performance Tuning
 - Adjust `temperature` parameter (currently 0.7) for more/less creative outputs
-- Modify `max_tokens` limit (currently 1500) based on content length requirements
+- Modify `max_tokens` limit (currently 2500) based on content length requirements
 - Implement additional caching layers as needed
 
 **Section sources**
-- [openai.ts](file://lib/services/openai.ts#L139-L208)
-- [html-formatter.ts](file://lib/services/html-formatter.ts#L5-L92)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L104-L196)
+- [html-formatter.ts](file://lib/services/html-formatter.ts#L22-L143)

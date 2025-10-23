@@ -11,18 +11,22 @@
 - [types.ts](file://lib/supabase/types.ts)
 - [personalizations.ts](file://lib/api/personalizations.ts)
 - [test-lesson-block.html](file://public/test-lesson-block.html)
-- [http.ts](file://lib/utils/http.ts) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
-- [next.config.ts](file://next.config.ts) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
-- [vercel.json](file://vercel.json) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
+- [http.ts](file://lib/utils/http.ts) - *Updated in commit 2dca774c1b54d7e5ce9a56b34ecc788cca802da5*
+- [next.config.ts](file://next.config.ts) - *Updated in commit 2dca774c1b54d7e5ce9a56b34ecc788cca802da5*
+- [vercel.json](file://vercel.json) - *Updated in commit 2dca774c1b54d7e5ce9a56b34ecc788cca802da5*
+- [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated in commit 2dca774c1b54d7e5ce9a56b34ecc788cca802da5*
+- [html-formatter.ts](file://lib/services/html-formatter.ts) - *Updated in commit 2dca774c1b54d7e5ce9a56b34ecc788cca802da5*
 </cite>
 
 ## Update Summary
 **Changes Made**   
+- Added documentation for default template fallback behavior when user profiles are not found
 - Updated CORS configuration details to reflect expanded methods and headers
 - Added documentation for OPTIONS preflight handlers across all API endpoints
 - Enhanced CORS policy description with new Access-Control-Max-Age header
 - Updated section sources to include newly modified files
 - Added reference to global CORS configuration in next.config.ts and vercel.json
+- Documented the default template content structure and survey CTA behavior
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -39,8 +43,8 @@ This document provides comprehensive API documentation for the persona applicati
 The API supports key operations including template personalization, lesson retrieval, user profile creation via surveys, and CRUD operations for personalizations. All endpoints follow REST conventions and return JSON responses with consistent error handling patterns.
 
 **Section sources**
-- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts)
-- [survey/route.ts](file://app/api/survey/route.ts)
+- [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L20-L146)
+- [survey/route.ts](file://app/api/survey/route.ts#L29-L175)
 
 ## Core Endpoints
 
@@ -297,9 +301,9 @@ The CORS policy is implemented consistently across all persona endpoints through
 **Section sources**
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L21-L24)
 - [block/route.ts](file://app/api/persona/block/route.ts#L16-L19)
-- [http.ts](file://lib/utils/http.ts#L6-L11) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
-- [next.config.ts](file://next.config.ts#L15-L25) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
-- [vercel.json](file://vercel.json#L4-L25) - *Updated in commit 45bebb8f3cfcea67914b222bf7cb334536023c5a*
+- [http.ts](file://lib/utils/http.ts#L6-L11) - *Updated in commit 2dca774c1b54d7e5ce9a56b34ecc788cca802da5*
+- [next.config.ts](file://next.config.ts#L15-L25) - *Updated in commit 2dca774c1b54d7e5ce9a56b34ecc788cca802da5*
+- [vercel.json](file://vercel.json#L4-L25) - *Updated in commit 2dca774c1b54d7e5ce9a56b34ecc788cca802da5*
 
 ## Error Handling
 The API follows consistent error handling patterns across all endpoints:

@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-10-23T02:28:17.749Z",
+  "options": {
+    "courseSlug": "taping-basics",
+    "courseTitle": "Основы",
+    "kinescopeFolderId": "65272142-15a1-47fa-903e-c779f101f149",
+    "startLesson": 1,
+    "endLesson": 1
+  },
+  "stats": {
+    "total": 1,
+    "successful": 1,
+    "failed": 0,
+    "skipped": 0,
+    "errors": []
+  },
+  "elapsed_minutes": 0.5
+}

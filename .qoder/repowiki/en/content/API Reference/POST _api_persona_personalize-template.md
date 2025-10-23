@@ -12,12 +12,11 @@
 
 ## Update Summary
 **Changes Made**   
-- Updated error handling section to reflect new default template fallback behavior
-- Added documentation for `formatDefaultTemplateContent` function and its usage
-- Enhanced CORS documentation with new OPTIONS handler and headers
-- Updated workflow diagram to include default template path
-- Modified status codes section to clarify 200 responses for fallback scenarios
-- Added new section sources reflecting recent code changes
+- Updated documentation to reflect deprecation of template-based personalization in favor of transcript-driven generation
+- Added note about backward compatibility for the endpoint
+- Removed outdated references to deprecated template-based workflow
+- Updated section sources to reflect current file status
+- Clarified that this endpoint remains for backward compatibility only
 
 ## Table of Contents
 1. [Introduction](#introduction)

@@ -8,8 +8,16 @@
 - [all-lessons.html](file://public/getcourse/all-lessons.html)
 - [anketa.html](file://public/getcourse/anketa.html)
 - [lesson-block-template.html](file://public/getcourse/lesson-block-template.html)
-- [GETCOURSE_INTEGRATION.md](file://GETCOURSE_INTEGRATION.md)
+- [GETCOURSE_INTEGRATION_FINAL.md](file://GETCOURSE_INTEGRATION_FINAL.md) - *Updated in recent commit*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated Iframe Integration section with new name field behavior and help text
+- Added details about pre-filled and editable name field in survey
+- Enhanced Step-by-Step Setup Instructions with updated URL parameters
+- Added troubleshooting note about name field verification
+- Updated referenced files to include GETCOURSE_INTEGRATION_FINAL.md
 
 ## Table of Contents
 1. [Integration Overview](#integration-overview)
@@ -26,11 +34,13 @@
 The persona application integrates with the GetCourse LMS platform through iframe embedding and dynamic content personalization. The integration enables personalized learning experiences by collecting user data through surveys and dynamically generating lesson content based on individual responses. This document details the technical implementation, configuration requirements, and operational procedures for establishing and maintaining this integration.
 
 **Section sources**
-- [GETCOURSE_INTEGRATION.md](file://GETCOURSE_INTEGRATION.md#L1-L280)
+- [GETCOURSE_INTEGRATION_FINAL.md](file://GETCOURSE_INTEGRATION_FINAL.md#L1-L347)
 
 ## Iframe Integration at /survey/iframe
 
-The `/survey/iframe` endpoint serves as the primary integration point between the persona application and GetCourse. This route renders a client-side React component that displays a survey form within an iframe context. The page accepts two query parameters: `uid` (user identifier from GetCourse) and `name` (user's real name). When the form is submitted, it sends a POST request to the `/api/survey` endpoint with the survey data and user identifier. Upon successful processing, the application sends a `SURVEY_COMPLETED` message to the parent window using `window.parent.postMessage()`, enabling GetCourse to capture the completion event and redirect users to their personalized dashboard.
+The `/survey/iframe` endpoint serves as the primary integration point between the persona application and GetCourse. This route renders a client-side React component that displays a survey form within an iframe context. The page accepts two query parameters: `uid` (user identifier from GetCourse) and `name` (user's real name). The name field is pre-filled with the value from the `name` parameter but remains editable by the user, as GetCourse sometimes passes an email address instead of a name. A help text提示提醒 users to verify their name: "💡 Check the name - sometimes an email is provided here."
+
+When the form is submitted, it sends a POST request to the `/api/survey` endpoint with the survey data and user identifier. Upon successful processing, the application sends a `SURVEY_COMPLETED` message to the parent window using `window.parent.postMessage()`, enabling GetCourse to capture the completion event and redirect users to their personalized dashboard.
 
 ```mermaid
 sequenceDiagram
@@ -38,7 +48,8 @@ participant GetCourse as GetCourse LMS
 participant Iframe as /survey/iframe
 participant API as /api/survey
 GetCourse->>Iframe : Load iframe with uid and name
-Iframe->>Iframe : Display survey form
+Iframe->>Iframe : Display survey form with pre-filled name
+Iframe->>Iframe : User verifies/edits name if needed
 Iframe->>API : POST survey data + uid
 API->>API : Create/update profile
 API->>API : Generate personalizations
@@ -53,7 +64,7 @@ GetCourse->>GetCourse : Redirect to dashboard
 
 **Section sources**
 - [page.tsx](file://app/survey/iframe/page.tsx#L1-L285)
-- [GETCOURSE_INTEGRATION.md](file://GETCOURSE_INTEGRATION.md#L1-L280)
+- [GETCOURSE_INTEGRATION_FINAL.md](file://GETCOURSE_INTEGRATION_FINAL.md#L1-L347)
 
 ## Lesson Personalization Blocks
 
@@ -136,6 +147,9 @@ Cross-origin resource sharing (CORS) is configured to enable secure API access f
 **Section sources**
 - [block/route.ts](file://app/api/persona/block/route.ts#L14-L183)
 - [personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L20-L146)
+- [lib/utils/http.ts](file://lib/utils/http.ts#L6-L11)
+- [next.config.ts](file://next.config.ts#L10-L25)
+- [vercel.json](file://vercel.json#L2-L15)
 
 ## Step-by-Step Setup Instructions
 
@@ -162,7 +176,7 @@ window.addEventListener('message', function(event) {
 - [anketa.html](file://public/getcourse/anketa.html#L1-L21)
 - [all-lessons.html](file://public/getcourse/all-lessons.html#L1-L98)
 - [lesson-block-template.html](file://public/getcourse/lesson-block-template.html#L1-L60)
-- [GETCOURSE_INTEGRATION.md](file://GETCOURSE_INTEGRATION.md#L1-L280)
+- [GETCOURSE_INTEGRATION_FINAL.md](file://GETCOURSE_INTEGRATION_FINAL.md#L1-L347)
 
 ## Troubleshooting Common Issues
 
@@ -173,8 +187,9 @@ Common integration issues and their solutions include:
 - **CORS errors**: Verify that the API endpoints are returning the correct CORS headers. Check browser developer tools for preflight request failures and ensure OPTIONS requests are handled properly.
 - **Styling inconsistencies**: Ensure the CSS from `https://pesonalisev2-zxby.vercel.app/persona/styles.css` is loaded by verifying the link element is added to the document head.
 - **Message event not captured**: Confirm that the event listener for `SURVEY_COMPLETED` is properly implemented and that the origin check uses the correct domain (`https://pesonalisev2-zxby.vercel.app`).
+- **Name field issues**: Users may see their email address pre-filled in the name field. The help text "💡 Check the name - sometimes an email is provided here" guides them to verify and edit their name if needed.
 
 **Section sources**
 - [block/route.ts](file://app/api/persona/block/route.ts#L14-L183)
 - [page.tsx](file://app/survey/iframe/page.tsx#L1-L285)
-- [GETCOURSE_INTEGRATION.md](file://GETCOURSE_INTEGRATION.md#L1-L280)
+- [GETCOURSE_INTEGRATION_FINAL.md](file://GETCOURSE_INTEGRATION_FINAL.md#L1-L347)

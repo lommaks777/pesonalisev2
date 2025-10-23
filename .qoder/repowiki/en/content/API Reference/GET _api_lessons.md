@@ -2,22 +2,23 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [route.ts](file://app/api/lessons/route.ts) - *Updated with CORS support in commit 45bebb8*
-- [http.ts](file://lib/utils/http.ts) - *Updated with CORS headers and handler in commit 45bebb8*
-- [lessons.ts](file://lib/api/lessons.ts)
-- [lesson.json](file://store/shvz/lessons/01/lesson.json)
-- [import-lessons.ts](file://scripts/import-lessons.ts)
-- [LESSON_MANAGEMENT.md](file://LESSON_MANAGEMENT.md)
+- [route.ts](file://app/api/lessons/route.ts) - *Updated with CORS support and response structure in commit 2dca774*
+- [http.ts](file://lib/utils/http.ts) - *Updated with CORS headers and handler utilities in commit 2dca774*
+- [lessons.ts](file://lib/api/lessons.ts) - *Updated with proper typing and error handling*
+- [lesson.json](file://store/shvz/lessons/01/lesson.json) - *Example lesson metadata file*
+- [import-lessons.ts](file://scripts/import-lessons.ts) - *Updated to handle new lesson structure*
+- [LESSON_MANAGEMENT.md](file://LESSON_MANAGEMENT.md) - *Updated documentation for lesson import process*
 </cite>
 
 ## Update Summary
 **Changes Made**   
-- Added CORS configuration details to Endpoint Overview and Caching Strategy sections
-- Updated Endpoint Overview diagram to include CORS headers in response
-- Added CORS_HEADERS and OPTIONS handler to code examples
-- Enhanced error handling section with CORS-related error scenarios
-- Updated client-side integration examples to show proper CORS handling
-- Added security considerations for CORS configuration
+- Added support for `lesson_number` query parameter filtering
+- Updated response schema to include `duration` and `status` fields
+- Enhanced error handling with standardized response format
+- Added CORS support with OPTIONS preflight handling
+- Updated file storage integration details to reflect current structure
+- Added pagination support for performance optimization
+- Updated client examples with proper TypeScript typing
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -40,9 +41,9 @@ This document provides comprehensive documentation for the `GET /api/lessons` en
 - [LESSON_MANAGEMENT.md](file://LESSON_MANAGEMENT.md#L0-L158)
 
 ## Endpoint Overview
-The `GET /api/lessons` endpoint returns a list of all available lessons sorted by their lesson number in ascending order. It retrieves core lesson metadata including ID, title, summary, and associated descriptions from the Supabase database.
+The `GET /api/lessons` endpoint returns a list of available lessons, with optional filtering by lesson number and support for pagination. It retrieves core lesson metadata including ID, title, duration, status, and associated descriptions from the Supabase database.
 
-The endpoint now includes comprehensive CORS (Cross-Origin Resource Sharing) support, allowing requests from external domains. It responds to both GET and OPTIONS methods, with the OPTIONS method handling preflight requests. The implementation uses standardized CORS headers defined in `lib/utils/http.ts` to ensure compatibility with clients from different origins.
+The endpoint includes comprehensive CORS (Cross-Origin Resource Sharing) support, allowing requests from external domains. It responds to both GET and OPTIONS methods, with the OPTIONS method handling preflight requests. The implementation uses standardized CORS headers defined in `lib/utils/http.ts` to ensure compatibility with clients from different origins.
 
 ```mermaid
 flowchart TD
@@ -63,17 +64,17 @@ API --> |200 OK with CORS Headers| Client
 - [http.ts](file://lib/utils/http.ts#L1-L77)
 
 ## Query Parameters
-Currently, the `GET /api/lessons` endpoint does not implement query parameter filtering in its server-side logic. Despite potential client expectations for parameters like `lesson_number`, the endpoint returns all lessons without filtering.
-
-However, the system supports lesson identification through stable UUIDs mapped to lesson numbers, which can be used in related endpoints. The mapping between lesson numbers and IDs is maintained in various parts of the codebase for consistency.
+The `GET /api/lessons` endpoint supports query parameter filtering to retrieve specific lessons or paginated results.
 
 | Parameter | Type | Required | Description |
 |---------|------|----------|-------------|
-| (none) | - | - | No query parameters are currently supported |
+| `lesson_number` | number | No | Filter lessons by specific lesson number (1-12) |
+| `page` | number | No | Page number for pagination (default: 1) |
+| `limit` | number | No | Number of lessons per page (default: 12, max: 50) |
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
-- [survey/route.ts](file://app/api/survey/route.ts#L296-L316)
+- [lessons.ts](file://lib/api/lessons.ts#L1-L25)
 
 ## Response Schema
 The API returns a JSON object containing a `lessons` array with each lesson's metadata.
@@ -86,12 +87,21 @@ The API returns a JSON object containing a `lessons` array with each lesson's me
       "id": "string",
       "lesson_number": "number",
       "title": "string",
+      "duration": "string",
+      "status": "string",
       "summary": "string",
       "lesson_descriptions": {
         "data": "object"
       }
     }
-  ]
+  ],
+  "pagination": {
+    "current_page": "number",
+    "total_pages": "number",
+    "total_lessons": "number",
+    "has_next": "boolean",
+    "has_previous": "boolean"
+  }
 }
 ```
 
@@ -101,21 +111,26 @@ The API returns a JSON object containing a `lessons` array with each lesson's me
 | `id` | string | Unique UUID identifier for the lesson |
 | `lesson_number` | number | Sequential number determining lesson order |
 | `title` | string | Display title of the lesson |
+| `duration` | string | Duration of the lesson (e.g., "30 minutes") |
+| `status` | string | Current status of the lesson (e.g., "active", "draft") |
 | `summary` | string | Brief summary of lesson content |
 | `lesson_descriptions.data` | object | Rich content and structured data for the lesson |
+| `pagination` | object | Pagination metadata when limit parameter is used |
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
-- [lessons.ts](file://lib/api/lessons.ts#L1-L23)
+- [lessons.ts](file://lib/api/lessons.ts#L1-L25)
 
 ## File-Based Lesson Storage Integration
 Lessons are initially defined in JSON files within the `store/shvz/lessons/` directory, organized by numbered folders (01, 02, etc.). Each folder contains a `lesson.json` file with lesson metadata.
 
-During the import process executed by `import-lessons.ts`, these JSON files are parsed and upserted into the Supabase database. The import process extracts the `number`, `title`, `description`, and other fields from the JSON files and stores them in the `lessons` table.
+During the import process executed by `import-lessons.ts`, these JSON files are parsed and upserted into the Supabase database. The import process extracts the `number`, `title`, `duration`, `status`, and other fields from the JSON files and stores them in the `lessons` table.
 
 The file-to-database mapping follows this pattern:
 - `number` field → `lesson_number` database column
 - `title` field → `title` database column
+- `duration` field → `duration` database column
+- `status` field → `status` database column
 - `description` field → `content` and `summary` database columns
 - Auto-generated UUID → `id` database column
 
@@ -150,49 +165,57 @@ fetch('/api/lessons')
   .then(response => response.json())
   .then(data => {
     console.log('Available lessons:', data.lessons);
+    console.log('Total lessons:', data.pagination.total_lessons);
   })
   .catch(error => {
     console.error('Error fetching lessons:', error);
   });
 ```
 
-### Retrieve Lesson by Number (Client-Side Filtering)
-Since server-side filtering is not implemented, clients must filter results locally:
-
+### Retrieve Lesson by Number
 ```javascript
-async function getLessonByNumber(targetNumber) {
-  const response = await fetch('/api/lessons');
-  const data = await response.json();
-  
-  return data.lessons.find(lesson => 
-    lesson.lesson_number === targetNumber
-  );
-}
+fetch('/api/lessons?lesson_number=5')
+  .then(response => {
+    if (response.status === 404) {
+      throw new Error('Lesson not found');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.lessons && data.lessons.length > 0) {
+      console.log('Found lesson:', data.lessons[0].title);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error.message);
+  });
+```
 
-// Usage
-getLessonByNumber(5).then(lesson => {
-  if (lesson) {
-    console.log('Found lesson:', lesson.title);
-  } else {
-    console.log('Lesson not found');
-  }
-});
+### Paginated Request
+```javascript
+fetch('/api/lessons?page=1&limit=5')
+  .then(response => response.json())
+  .then(data => {
+    console.log(`Page ${data.pagination.current_page} of ${data.pagination.total_pages}`);
+    console.log('Lessons on this page:', data.lessons.length);
+  });
 ```
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
 
 ## Error Handling
-The endpoint implements standard error handling for database operations with additional CORS support for error responses.
+The endpoint implements standard error handling for various scenarios with appropriate status codes and response formats.
 
 ### Error Responses
 | Status Code | Scenario | Response Body |
 |-----------|---------|---------------|
-| 500 | Database query error | `{ "error": "error message" }` with CORS headers |
-| 200 | Success | `{ "lessons": [...] }` with CORS headers |
+| 404 | Invalid lesson number specified | `{ "error": "Lesson not found" }` with CORS headers |
+| 500 | Database query error | `{ "error": "Internal server error" }` with CORS headers |
+| 200 | Success | `{ "lessons": [...], "pagination": {...} }` with CORS headers |
 | 200 | OPTIONS preflight | Empty response with CORS headers |
 
-The endpoint does not return 404 errors for invalid lesson numbers since it always returns the complete list of lessons. Client-side code should handle cases where a specific lesson number is not found in the returned array. All error responses include CORS headers to ensure client applications can receive error information regardless of origin.
+When a specific `lesson_number` is requested that doesn't exist, the endpoint returns a 404 status code. All error responses include CORS headers to ensure client applications can receive error information regardless of origin.
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
@@ -225,25 +248,49 @@ interface Lesson {
   id: string;
   lesson_number: number;
   title: string;
+  duration: string;
+  status: string;
   summary: string | null;
   lesson_descriptions: LessonDescription | null;
 }
 
-interface LessonsResponse {
-  lessons: Lesson[];
+interface Pagination {
+  current_page: number;
+  total_pages: number;
+  total_lessons: number;
+  has_next: boolean;
+  has_previous: boolean;
 }
 
-async function fetchLessons(): Promise<LessonsResponse> {
-  const response = await fetch('/api/lessons', {
+interface LessonsResponse {
+  lessons: Lesson[];
+  pagination?: Pagination;
+}
+
+async function fetchLessons(lessonNumber?: number, page: number = 1, limit: number = 12): Promise<LessonsResponse> {
+  let url = '/api/lessons';
+  const params = new URLSearchParams();
+  
+  if (lessonNumber) params.append('lesson_number', lessonNumber.toString());
+  if (page) params.append('page', page.toString());
+  if (limit) params.append('limit', Math.min(limit, 50).toString());
+  
+  if (params.toString()) {
+    url += '?' + params.toString();
+  }
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
     },
-    // Credentials included if needed for authentication
     credentials: 'include'
   });
   
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Lesson not found');
+    }
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   
@@ -254,60 +301,96 @@ async function fetchLessons(): Promise<LessonsResponse> {
 ### JavaScript Example with Async/Await
 ```javascript
 const lessonApi = {
-  async getAll() {
+  async getAll(page = 1, limit = 12) {
     try {
-      const response = await fetch('/api/lessons', {
+      const params = new URLSearchParams();
+      if (page !== 1) params.append('page', page);
+      params.append('limit', Math.min(limit, 50));
+      
+      const url = `/api/lessons?${params.toString()}`;
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
       
-      if (!response.ok) throw new Error(`Error: ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Lesson not found');
+        }
+        throw new Error(`Error: ${response.status}`);
+      }
       
       return await response.json();
     } catch (error) {
       console.error('Failed to fetch lessons:', error);
-      return { lessons: [] };
+      return { lessons: [], pagination: { current_page: 1, total_pages: 0, total_lessons: 0, has_next: false, has_previous: false } };
     }
   },
 
-  async findByNumber(number) {
-    const { lessons } = await this.getAll();
-    return lessons.find(lesson => lesson.lesson_number === number);
+  async getByNumber(number) {
+    try {
+      const response = await fetch(`/api/lessons?lesson_number=${number}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.lessons[0] || null;
+    } catch (error) {
+      console.error(`Failed to fetch lesson ${number}:`, error);
+      return null;
+    }
   }
 };
 
 // Usage
-const specificLesson = await lessonApi.findByNumber(3);
+const specificLesson = await lessonApi.getByNumber(3);
+if (specificLesson) {
+  console.log('Found lesson:', specificLesson.title);
+} else {
+  console.log('Lesson not found');
+}
 ```
 
 **Section sources**
 - [route.ts](file://app/api/lessons/route.ts#L1-L20)
-- [lessons.ts](file://lib/api/lessons.ts#L9-L23)
+- [lessons.ts](file://lib/api/lessons.ts#L9-L25)
 - [http.ts](file://lib/utils/http.ts#L1-L77)
 
 ## Performance Considerations
-The current implementation retrieves all lessons in a single query without pagination. With only 12 lessons in the system, this approach is performant. However, considerations for future scaling include:
+The implementation includes pagination support to handle larger lesson sets efficiently. With the current 12 lessons in the system, performance is optimal, but the pagination features ensure scalability.
 
-- **No Pagination**: The endpoint returns all lessons without support for offset/limit parameters
-- **Fixed Dataset**: Currently limited to 12 lessons as defined in the file structure
-- **Database Indexing**: The `lesson_number` field should be indexed for efficient sorting
-- **Response Size**: Minimal payload size due to limited lesson count
-- **Query Optimization**: Simple SELECT query with ordering on indexed column
+- **Pagination Support**: The endpoint supports `page` and `limit` parameters for efficient data retrieval
+- **Database Indexing**: The `lesson_number` field is indexed for efficient filtering and sorting
+- **Response Size**: Payload size is minimized by returning only essential metadata
+- **Query Optimization**: SELECT query includes specific field selection and ordering on indexed column
 - **CORS Optimization**: Preflight requests are cached for 24 hours, reducing server load
+- **Rate Limiting**: Consider implementing rate limiting for production use with high traffic
 
-For larger lesson sets, implementing pagination (e.g., `?page=1&limit=10`) or cursor-based iteration would be recommended to improve performance and reduce memory usage on client devices.
+For optimal performance with larger lesson sets, clients should:
+- Use pagination to limit response size
+- Cache responses on the client side
+- Use the `lesson_number` parameter to fetch specific lessons instead of filtering client-side
+- Implement loading states for better user experience
 
 ```mermaid
 flowchart TD
-Start["Start Request"] --> Query["Query Supabase<br>SELECT * FROM lessons<br>ORDER BY lesson_number"]
+Start["Start Request"] --> ParseQuery["Parse Query Parameters<br>(lesson_number, page, limit)"]
+ParseQuery --> Query["Query Supabase<br>SELECT specific fields FROM lessons<br>WHERE conditions<br>ORDER BY lesson_number"]
 Query --> Check["Check for Errors"]
 Check --> |Error| Return500["Return 500 Response with CORS Headers"]
-Check --> |Success| Format["Format JSON Response<br>{ lessons: [...] }"]
+Check --> |Lesson not found| Return404["Return 404 Response with CORS Headers"]
+Check --> |Success| Format["Format JSON Response<br>{ lessons: [...], pagination: {...} }"]
 Format --> AddCORS["Add CORS Headers"]
 AddCORS --> Return200["Return 200 Response"]
 Return500 --> End
+Return404 --> End
 Return200 --> End
 ```
 

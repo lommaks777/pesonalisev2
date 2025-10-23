@@ -3,6 +3,7 @@
 <cite>
 **Referenced Files in This Document**   
 - [lessons/route.ts](file://app/api/lessons/route.ts)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts)
 - [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts)
 - [profiles/[profileId]/personalizations/route.ts](file://app/api/profiles/[profileId]/personalizations/route.ts)
 - [personalizations/route.ts](file://app/api/personalizations/route.ts)
@@ -13,6 +14,7 @@
 - [openai.ts](file://lib/services/openai.ts) - *Updated in recent commit*
 - [lesson-templates.ts](file://lib/services/lesson-templates.ts) - *Updated in recent commit*
 - [html-formatter.ts](file://lib/services/html-formatter.ts) - *Updated in recent commit*
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts) - *New service for transcript-driven generation*
 - [personalization.ts](file://lib/services/personalization.ts) - *Updated in recent commit*
 - [profile.ts](file://lib/services/profile.ts) - *Updated in recent commit*
 - [http.ts](file://lib/utils/http.ts) - *Updated in recent commit*
@@ -21,12 +23,13 @@
 
 ## Update Summary
 **Changes Made**   
-- Updated AI-Powered Personalization section to reflect service layer refactoring
-- Added new section on Service Layer Architecture
-- Updated Server-Side Data Flow section to reflect new service dependencies
-- Enhanced Security Considerations with new service layer details
-- Updated all relevant section sources to reflect moved service implementations
-- Added new diagram sources for service layer components
+- Updated AI-Powered Personalization section to reflect new transcript-driven generation model
+- Added new section on Personalization Engine Architecture
+- Updated Server-Side Data Flow to reflect new personalization workflow
+- Enhanced Service Layer Architecture with new personalization-engine service
+- Updated API Route Structure to reflect changes in personalization endpoints
+- Added new diagram sources for personalization engine components
+- Updated all relevant section sources to reflect new service implementations
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -34,12 +37,13 @@
 3. [Server-Side Data Flow](#server-side-data-flow)
 4. [Authentication and Security Model](#authentication-and-security-model)
 5. [Service Layer Architecture](#service-layer-architecture)
-6. [AI-Powered Personalization with OpenAI](#ai-powered-personalization-with-openai)
-7. [Database Schema and Relationships](#database-schema-and-relationships)
-8. [Security Considerations](#security-considerations)
-9. [Caching and Server-Side Rendering](#caching-and-server-side-rendering)
-10. [Error Handling Strategies](#error-handling-strategies)
-11. [Conclusion](#conclusion)
+6. [Personalization Engine Architecture](#personalization-engine-architecture)
+7. [AI-Powered Personalization with OpenAI](#ai-powered-personalization-with-openai)
+8. [Database Schema and Relationships](#database-schema-and-relationships)
+9. [Security Considerations](#security-considerations)
+10. [Caching and Server-Side Rendering](#caching-and-server-side-rendering)
+11. [Error Handling Strategies](#error-handling-strategies)
+12. [Conclusion](#conclusion)
 
 ## Introduction
 The backend component of the persona application is designed to deliver personalized educational content using AI-driven logic, Supabase for data persistence, and Next.js API routes for server-side processing. This document provides a comprehensive architectural overview of the backend system, focusing on API design, data flow, authentication, AI integration, database schema, and security practices.
@@ -51,7 +55,8 @@ The backend component of the persona application is designed to deliver personal
 ## API Route Structure
 The API routes under `app/api/` follow RESTful conventions and are organized by functionality. Key endpoints include:
 - `GET /api/lessons`: Retrieves all lessons with summaries and descriptions.
-- `POST /api/persona/personalize-template`: Generates personalized lesson content using OpenAI.
+- `POST /api/persona/block`: Generates personalized lesson content using full lesson transcripts.
+- `POST /api/persona/personalize-template`: Generates personalized lesson content using template-based approach (deprecated).
 - `GET /api/profiles/[profileId]/personalizations`: Fetches all personalizations for a given profile.
 - `POST /api/survey`: Handles user survey submission and profile creation.
 - `DELETE /api/personalizations`: Removes a specific personalization.
@@ -71,13 +76,14 @@ G --> H["Return Response"]
 
 **Diagram sources**
 - [lessons/route.ts](file://app/api/lessons/route.ts#L1-L21)
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
-- [survey/route.ts](file://app/api/survey/route.ts#L1-L98)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
+- [survey/route.ts](file://app/api/survey/route.ts#L1-L170)
 
 **Section sources**
 - [lessons/route.ts](file://app/api/lessons/route.ts#L1-L21)
 - [personalizations/route.ts](file://app/api/personalizations/route.ts#L82-L131)
-- [survey/route.ts](file://app/api/survey/route.ts#L1-L98)
+- [survey/route.ts](file://app/api/survey/route.ts#L1-L170)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
 
 ## Server-Side Data Flow
 Data flows from API routes through Supabase server client to the PostgreSQL database. The `createSupabaseServerClient()` function initializes a Supabase client with service role or anonymous key, enabling secure database access without session persistence. Upon receiving a request, the server:
@@ -86,12 +92,12 @@ Data flows from API routes through Supabase server client to the PostgreSQL data
 3. Queries or modifies data using Supabase client.
 4. Returns structured JSON or HTML responses.
 
-For personalization, raw JSON templates from the `store/` directory are processed and enriched with user-specific data before being stored in the database. The system now uses a modular service layer architecture where API routes delegate business logic to specialized service modules in the `lib/services/` directory.
+For personalization, the system now uses a transcript-driven approach where full lesson transcripts from the database are processed with user survey data to generate personalized content. The new workflow in `/api/survey` processes full transcripts through the personalization engine, replacing the previous template-based approach. API routes delegate business logic to specialized service modules in the `lib/services/` directory.
 
 **Section sources**
 - [server.ts](file://lib/supabase/server.ts#L19-L25)
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
-- [personalization.ts](file://lib/services/personalization.ts#L1-L140)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L371)
 
 ## Authentication and Security Model
 Authentication is managed through Supabase Auth, with user profiles stored in the `profiles` table. Each profile is linked to a `user_identifier`, enabling secure identification without exposing sensitive credentials. Row-Level Security (RLS) policies ensure users can only access their own personalizations. The system uses environment variables for API keys and database credentials, with validation in place to prevent runtime failures due to missing configuration.
@@ -141,6 +147,7 @@ The backend has been refactored to implement a clear separation of concerns thro
 - **personalization.ts**: Manages database operations for personalizations including `savePersonalization()` and `getPersonalization()`
 - **profile.ts**: Handles profile operations with `getProfileByUserId()` and `upsertProfile()`
 - **http.ts**: Provides standardized CORS utilities and HTTP helpers
+- **personalization-engine.ts**: New service for transcript-driven personalization using GPT-4o
 
 API routes now serve as lightweight controllers that coordinate these services rather than containing business logic directly. This separation improves testability, reusability, and maintainability of the codebase.
 
@@ -152,14 +159,17 @@ componentDiagram
 [API Routes] --> [personalization.ts]
 [API Routes] --> [profile.ts]
 [API Routes] --> [http.ts]
+[API Routes] --> [personalization-engine.ts]
 [openai.ts] --> [Supabase]
 [lesson-templates.ts] --> [File System]
 [personalization.ts] --> [Supabase]
 [profile.ts] --> [Supabase]
+[personalization-engine.ts] --> [Supabase]
 ```
 
 **Diagram sources**
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L371)
 - [openai.ts](file://lib/services/openai.ts#L1-L138)
 - [lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L101)
 - [html-formatter.ts](file://lib/services/html-formatter.ts#L1-L108)
@@ -167,17 +177,24 @@ componentDiagram
 - [profile.ts](file://lib/services/profile.ts#L1-L130)
 
 **Section sources**
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L371)
 - [openai.ts](file://lib/services/openai.ts#L1-L138)
 - [lesson-templates.ts](file://lib/services/lesson-templates.ts#L1-L101)
 - [html-formatter.ts](file://lib/services/html-formatter.ts#L1-L108)
 - [personalization.ts](file://lib/services/personalization.ts#L1-L140)
 - [profile.ts](file://lib/services/profile.ts#L1-L130)
 
-## AI-Powered Personalization with OpenAI
-The application integrates OpenAI's GPT-4o-mini model to generate personalized lesson content. When a user submits a survey, the `/api/persona/personalize-template` endpoint triggers AI processing by sending a structured prompt containing the user's motivations, fears, goals, and preferred practice model. The prompt instructs the AI to personalize predefined lesson templates, ensuring relevance and engagement.
+## Personalization Engine Architecture
+The system has been refactored to replace the template-based personalization approach with a transcript-driven generation model. The new personalization engine in `lib/services/personalization-engine.ts` processes full lesson transcripts directly, enabling deeper contextual understanding and more accurate personalization.
 
-The `personalizeLesson()` function in `lib/services/openai.ts` constructs prompts dynamically, while `formatPersonalizedContent()` in `lib/services/html-formatter.ts` converts AI output into styled HTML blocks. The system uses a fallback strategy that returns original template content if the AI service is unavailable, ensuring consistent user experience.
+Key components of the new architecture:
+- **loadLessonTranscript()**: Retrieves full lesson transcripts from the database content field
+- **generatePersonalizedDescription()**: Main function that orchestrates AI generation using GPT-4o with full transcript context
+- **createPersonalizationPrompt()**: Constructs prompts with complete lesson transcripts (8-18k characters) and detailed user profiles
+- **validateAndNormalizeResponse()**: Ensures consistent response structure and handles formatting issues
+
+The new workflow processes complete lesson content rather than compressed templates, eliminating information loss and enabling more nuanced personalization. The engine uses GPT-4o (not gpt-4o-mini) for enhanced context processing and generates content in a standardized 7-section format.
 
 ```mermaid
 sequenceDiagram
@@ -185,30 +202,73 @@ participant Client
 participant API as API Route
 participant Supabase
 participant OpenAI
-participant Store
-Client->>API : POST /api/persona/personalize-template
-API->>Supabase : Get Profile & Lesson
-Supabase-->>API : Profile + Survey Data
-API->>Store : Load Lesson Template
-Store-->>API : JSON Template
-API->>OpenAI : Send Prompt with Survey
-OpenAI-->>API : Personalized JSON Response
-API->>Supabase : Save Personalization
-API-->>Client : Return HTML Block
+participant Engine as Personalization Engine
+Client->>API : POST /api/survey
+API->>Supabase : Create Profile
+Supabase-->>API : Profile Created
+API->>Supabase : Get All Lessons
+Supabase-->>API : Lesson List
+API->>Engine : For each lesson
+Engine->>Supabase : Load Full Transcript
+Supabase-->>Engine : Transcript Data
+Engine->>OpenAI : Generate with Full Context
+OpenAI-->>Engine : Personalized JSON
+Engine->>Supabase : Save Personalization
+Supabase-->>API : Confirmation
+API-->>Client : Success Response
 ```
 
 **Diagram sources**
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
-- [openai.ts](file://lib/services/openai.ts#L1-L138)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L371)
+- [survey/route.ts](file://app/api/survey/route.ts#L1-L170)
+- [block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
 
 **Section sources**
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
-- [openai.ts](file://lib/services/openai.ts#L1-L138)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L371)
+- [survey/route.ts](file://app/api/survey/route.ts#L1-L170)
+- [block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
+
+## AI-Powered Personalization with OpenAI
+The application integrates OpenAI's models to generate personalized lesson content. The system now uses two approaches:
+1. **Transcript-driven generation** (primary): Uses GPT-4o with full lesson transcripts for comprehensive personalization
+2. **Template-based personalization** (fallback): Uses gpt-4o-mini with compressed templates
+
+When a user submits a survey, the `/api/survey` endpoint triggers the transcript-driven engine by sending a structured prompt containing the user's motivations, fears, goals, and preferred practice model along with the complete lesson transcript. The prompt instructs the AI to analyze the full transcript and generate deeply personalized descriptions with specific references to lesson content.
+
+The `generatePersonalizedDescription()` function in `lib/services/personalization-engine.ts` constructs prompts with complete context, while `formatPersonalizedContent()` in `lib/services/html-formatter.ts` converts AI output into styled HTML blocks. The system uses a fallback strategy that returns original template content if the AI service is unavailable, ensuring consistent user experience.
+
+```mermaid
+sequenceDiagram
+participant Client
+participant API as API Route
+participant Supabase
+participant OpenAI
+participant Engine as Personalization Engine
+Client->>API : POST /api/survey
+API->>Supabase : Get Profile & Lessons
+Supabase-->>API : Profile + Survey Data
+API->>Engine : Process All Lessons
+Engine->>Supabase : Load Full Transcript
+Supabase-->>Engine : Complete Transcript
+Engine->>OpenAI : Send Prompt with Full Context
+OpenAI-->>Engine : Personalized JSON Response
+Engine->>Supabase : Save Personalization
+Supabase-->>API : Confirmation
+API-->>Client : Return Success
+```
+
+**Diagram sources**
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L371)
+- [survey/route.ts](file://app/api/survey/route.ts#L1-L170)
+
+**Section sources**
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L371)
+- [survey/route.ts](file://app/api/survey/route.ts#L1-L170)
 
 ## Database Schema and Relationships
 The database schema is defined in `001_init.sql` and includes the following core tables:
 - `profiles`: Stores user identifiers, names, and survey responses.
-- `lessons`: Contains lesson metadata including number, title, and summary.
+- `lessons`: Contains lesson metadata including number, title, and summary. The content field now stores full transcripts.
 - `personalized_lesson_descriptions`: Holds AI-generated personalized content linked to user profiles and lessons.
 - `lesson_descriptions`: Stores default lesson content.
 - `courses` and `lesson_assets`: Support course structure and media assets.
@@ -232,8 +292,8 @@ Security is enforced through multiple layers:
 The system avoids exposing raw database errors to clients, instead returning generic 500 responses to prevent information leakage. The refactored service layer improves security by centralizing error handling and validation logic.
 
 **Section sources**
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
-- [survey/route.ts](file://app/api/survey/route.ts#L1-L98)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
+- [survey/route.ts](file://app/api/survey/route.ts#L1-L170)
 - [http.ts](file://lib/utils/http.ts#L1-L20)
 
 ## Caching and Server-Side Rendering
@@ -242,7 +302,7 @@ The backend supports server-side rendering (SSR) by generating HTML responses di
 Frontend components consume these HTML blocks via client-side fetches, enabling dynamic insertion into lesson pages without full page reloads. The service layer architecture allows for future caching enhancements at the service level.
 
 **Section sources**
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
 
 ## Error Handling Strategies
 Error handling is implemented consistently across all API routes:
@@ -252,13 +312,13 @@ Error handling is implemented consistently across all API routes:
 - CORS preflight requests are handled via `OPTIONS` routes.
 - Service layer functions return null or fallback content on errors rather than throwing exceptions.
 
-Structured logging ensures errors are captured for debugging, while user-facing messages remain generic to avoid exposing internal logic. The service layer provides additional error handling with functions like `getProfileByUserId()` returning null on failure rather than throwing.
+Structured logging ensures errors are captured for debugging, while user-facing messages remain generic to avoid exposing internal logic. The personalization engine includes retry logic with adjusted temperature settings and comprehensive fallback content generation.
 
 **Section sources**
 - [lessons/route.ts](file://app/api/lessons/route.ts#L1-L21)
 - [personalizations/route.ts](file://app/api/personalizations/route.ts#L82-L131)
-- [persona/personalize-template/route.ts](file://app/api/persona/personalize-template/route.ts#L1-L102)
-- [personalization.ts](file://lib/services/personalization.ts#L1-L140)
+- [persona/block/route.ts](file://app/api/persona/block/route.ts#L1-L143)
+- [personalization-engine.ts](file://lib/services/personalization-engine.ts#L1-L371)
 
 ## Conclusion
-The backend architecture of the persona application effectively combines Supabase for data management, OpenAI for AI-driven personalization, and Next.js for scalable API routing. The system is secure, maintainable, and optimized for performance through caching and structured data flow. The recent refactoring has introduced a service layer architecture that centralizes business logic, improving code organization and maintainability. Future improvements could include enhanced RLS policies, rate limiting, more granular error reporting, and additional service layer optimizations.
+The backend architecture of the persona application effectively combines Supabase for data management, OpenAI for AI-driven personalization, and Next.js for scalable API routing. The system is secure, maintainable, and optimized for performance through caching and structured data flow. The recent refactoring has introduced a transcript-driven personalization engine that processes complete lesson content, enabling deeper contextual understanding and more accurate personalization. This replaces the previous template-based approach with a more robust system that eliminates information loss and leverages GPT-4o's enhanced context capabilities. Future improvements could include enhanced RLS policies, rate limiting, more granular error reporting, and additional service layer optimizations.
