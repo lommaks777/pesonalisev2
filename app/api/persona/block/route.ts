@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       // @ts-ignore - Supabase type issues
       let query: any = supabase
         .from("lessons")
-        .select("id, title, lesson_number, course_id")
+        .select("id, title, lesson_number, course_id, content")
         .eq("lesson_number", lessonNumber);
       
       // Фильтруем по курсу, если courseId определен
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     if (!lessonData) {
       let query: any = supabase
         .from("lessons")
-        .select("id, title, lesson_number, course_id")
+        .select("id, title, lesson_number, course_id, content")
         .ilike("title", `%${lesson}%`);
       
       // Фильтруем по курсу, если courseId определен
