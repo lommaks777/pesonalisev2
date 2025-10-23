@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1100">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3 L0,6 z" fill="#333" />
+    </marker>
+    <style>
+      .box { fill:#fff; stroke:#333; stroke-width:2; rx:10; ry:10; }
+      .databox { fill:#f7f7f7; stroke:#333; stroke-width:2; rx:6; ry:6; }
+      .title { font: bold 20px sans-serif; fill:#111; }
+      .label { font: 16px sans-serif; fill:#111; }
+      .small { font: 13px sans-serif; fill:#111; }
+      .area { fill: none; stroke:#aaa; stroke-width:2; stroke-dasharray:6 6; }
+      .arrow { stroke:#333; stroke-width:2; fill:none; marker-end: url(#arrow); }
+      .arrow_dash { stroke:#666; stroke-width:2; fill:none; stroke-dasharray:5 5; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="40" text-anchor="middle" class="title">AI-контент платформа — поток от запроса до результата</text>
+
+  <!-- Left column: User / UI -->
+  <rect x="60" y="90" width="260" height="80" class="box"/>
+  <text x="190" y="125" text-anchor="middle" class="label">Пользователь (браузер)</text>
+  <text x="190" y="147" text-anchor="middle" class="small">URL сайта или CSV, цели, тон, ниша</text>
+
+  <rect x="60" y="190" width="260" height="80" class="box"/>
+  <text x="190" y="225" text-anchor="middle" class="label">Веб‑интерфейс (SPA)</text>
+
+  <line x1="320" y1="230" x2="400" y2="230" class="arrow"/>
+
+  <!-- Backend API -->
+  <rect x="400" y="190" width="240" height="80" class="box"/>
+  <text x="520" y="225" text-anchor="middle" class="label">Backend API</text>
+  <text x="520" y="247" text-anchor="middle" class="small">Auth, квоты, очереди</text>
+
+  <!-- Ingestor -->
+  <rect x="690" y="150" width="260" height="80" class="box"/>
+  <text x="820" y="185" text-anchor="middle" class="label">Ингестор каталога</text>
+  <text x="820" y="207" text-anchor="middle" class="small">Парсинг URL / импорт CSV</text>
+
+  <line x1="640" y1="230" x2="690" y2="190" class="arrow"/>
+
+  <!-- Data stores -->
+  <rect x="690" y="250" width="260" height="70" class="databox"/>
+  <text x="820" y="283" text-anchor="middle" class="label">Каталог / Postgres</text>
+
+  <rect x="980" y="220" width="300" height="70" class="databox"/>
+  <text x="1130" y="252" text-anchor="middle" class="label">Память бренда / Vector DB</text>
+
+  <line x1="820" y1="230" x2="820" y2="250" class="arrow"/>
+  <line x1="950" y1="190" x2="1040" y2="220" class="arrow"/>
+
+  <!-- Orchestrator area -->
+  <rect x="360" y="360" width="960" height="620" class="area"/>
+  <text x="370" y="380" class="small">LLM‑оркестратор (шаги, проверки, фиксы)</text>
+
+  <!-- Router -->
+  <rect x="400" y="410" width="260" height="90" class="box"/>
+  <text x="530" y="445" text-anchor="middle" class="label">LLM‑роутер</text>
+  <text x="530" y="468" text-anchor="middle" class="small">Local 7–13B ↔ External API</text>
+
+  <line x1="560" y1="270" x2="530" y2="410" class="arrow_dash"/>
+  <text x="560" y="290" class="small">политики, лимиты</text>
+
+  <!-- Planner -->
+  <rect x="720" y="410" width="240" height="80" class="box"/>
+  <text x="840" y="445" text-anchor="middle" class="label">Planner (план/бриф)</text>
+
+  <line x1="660" y1="455" x2="720" y2="455" class="arrow"/>
+
+  <!-- Writer -->
+  <rect x="1000" y="410" width="260" height="80" class="box"/>
+  <text x="1130" y="445" text-anchor="middle" class="label">Writer (черновик)</text>
+  <text x="1130" y="467" text-anchor="middle" class="small">короткое локально, длинное — API</text>
+
+  <line x1="960" y1="455" x2="1000" y2="455" class="arrow"/>
+
+  <!-- Optimizer -->
+  <rect x="720" y="520" width="240" height="80" class="box"/>
+  <text x="840" y="555" text-anchor="middle" class="label">SEO/Style Optimizer</text>
+
+  <line x1="1130" y1="490" x2="840" y2="520" class="arrow"/>
+
+  <!-- Linker & Meta -->
+  <rect x="1000" y="520" width="260" height="80" class="box"/>
+  <text x="1130" y="555" text-anchor="middle" class="label">Linker & Meta/FAQ/Schema</text>
+
+  <line x1="960" y1="560" x2="1000" y2="560" class="arrow"/>
+
+  <!-- Validator -->
+  <rect x="720" y="630" width="240" height="80" class="box"/>
+  <text x="840" y="665" text-anchor="middle" class="label">Validator (правила)</text>
+  <text x="840" y="687" text-anchor="middle" class="small">H-структура, ключи, длины, JSON</text>
+
+  <line x1="1130" y1="600" x2="840" y2="630" class="arrow"/>
+
+  <!-- Fixer -->
+  <rect x="1000" y="630" width="260" height="80" class="box"/>
+  <text x="1130" y="665" text-anchor="middle" class="label">Fixer (точечные правки)</text>
+
+  <line x1="960" y1="670" x2="1000" y2="670" class="arrow"/>
+  <line x1="1130" y1="710" x2="840" y2="710" class="arrow_dash"/>
+  <text x="980" y="735" class="small">если не пройдено — повторная проверка</text>
+
+  <!-- Exporter -->
+  <rect x="720" y="740" width="240" height="80" class="box"/>
+  <text x="840" y="775" text-anchor="middle" class="label">Exporter</text>
+  <text x="840" y="797" text-anchor="middle" class="small">HTML/MD/CSV + schema.json</text>
+
+  <line x1="840" y1="710" x2="840" y2="740" class="arrow"/>
+
+  <!-- Outputs -->
+  <rect x="1000" y="740" width="260" height="80" class="databox"/>
+  <text x="1130" y="765" text-anchor="middle" class="label">Выходы</text>
+  <text x="1130" y="787" text-anchor="middle" class="small">SEO: HTML/MD • Email: HTML • Соцсети: CSV</text>
+
+  <line x1="960" y1="780" x2="1000" y2="780" class="arrow"/>
+
+  <!-- Queue -->
+  <rect x="400" y="520" width="260" height="80" class="databox"/>
+  <text x="530" y="555" text-anchor="middle" class="label">Очередь задач</text>
+  <text x="530" y="577" text-anchor="middle" class="small">пакетная генерация / ретраи</text>
+
+  <line x1="530" y1="490" x2="530" y2="520" class="arrow"/>
+
+  <!-- Notes -->
+  <text x="60" y="1020" class="small">
+    Приватные данные → только локальная LLM; длинные финальные тексты → внешняя модель. Валидатор обеспечивает SEO/формат; Fixer исправляет точечно.
+  </text>
+</svg>

@@ -18,10 +18,11 @@ export default function SurveyIframePage() {
   const searchParams = useSearchParams();
   const uidParam = searchParams.get("uid");
   const nameParam = searchParams.get("name");
+  const courseParam = searchParams.get("course") || "shvz"; // По умолчанию shvz для обратной совместимости
 
   const [formData, setFormData] = useState<SurveyFormData>({
     real_name: nameParam || "",
-    course: "massazh-shvz",
+    course: courseParam,
     motivation: [],
     target_clients: "",
     skills_wanted: "",

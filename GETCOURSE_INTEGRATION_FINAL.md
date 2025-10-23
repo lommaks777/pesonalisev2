@@ -15,7 +15,8 @@
 ```html
 <div id="persona-lesson-{LESSON_NUMBER}" 
      data-lesson="{LESSON_NUMBER}" 
-     data-title="{LESSON_TITLE}" 
+     data-title="{LESSON_TITLE}"
+     data-course="{COURSE_SLUG}" 
      style="display:none;margin:30px 0;">
 </div>
 
@@ -27,6 +28,7 @@
   const mount = document.getElementById('persona-lesson-{LESSON_NUMBER}');
   const lesson = mount.getAttribute('data-lesson');
   const title = mount.getAttribute('data-title');
+  const course = mount.getAttribute('data-course');
 
   try {
     // Загружаем стили один раз
@@ -44,7 +46,8 @@
       body: JSON.stringify({ 
         user_id: userId, 
         lesson: lesson,
-        title: title, 
+        title: title,
+        course: course, 
         flush: false 
       })
     });
@@ -68,6 +71,7 @@
 
 - `{LESSON_NUMBER}` → номер урока (1, 2, 3, ..., 12)
 - `{LESSON_TITLE}` → название урока
+- `{COURSE_SLUG}` → слаг курса (`shvz` или `taping-basics`)
 
 ---
 
@@ -78,19 +82,42 @@
 Для автоматической передачи данных пользователя в анкету используйте URL с параметрами:
 
 ```
-https://pesonalisev2-zxby.vercel.app/survey/iframe?uid={uid}&name={real_name}
+https://pesonalisev2-zxby.vercel.app/survey/iframe?uid={uid}&name={real_name}&course={course_slug}
+```
+
+**Параметры:**
+- `{uid}` - ID пользователя GetCourse (обязательный)
+- `{real_name}` - имя пользователя (обязательный)
+- `{course_slug}` - **слаг курса (обязательный)** - определяет для какого курса создается персонализация
+
+**Примеры для разных курсов:**
+
+**Курс "Массаж ШВЗ":**
+```
+https://pesonalisev2-zxby.vercel.app/survey/iframe?uid={uid}&name={real_name}&course=shvz
+```
+
+**Курс "Основы тейпирования":**
+```
+https://pesonalisev2-zxby.vercel.app/survey/iframe?uid={uid}&name={real_name}&course=taping-basics
 ```
 
 ### Переменные GetCourse:
 
 - `{uid}` — уникальный ID пользователя в GetCourse
-- `{real_name}` — имя пользователя (может быть email, поэтому поле редактируемое)
+- `{real_name}` — имя пользователя (может быть email, поэтому поле редактируемое)  
+- `{course_slug}` — слаг курса (указывается вручную для каждого курса)
+
+**Доступные слаги курсов:**
+- `shvz` - "Массаж шейно-воротниковой зоны"
+- `taping-basics` - "Основы тейпирования"
 
 ### Что происходит:
 
 1. **Поле "Имя" предзаполнено** значением из `{real_name}`
 2. **Пользователь может отредактировать** имя (если там email)
-3. После отправки анкеты создается профиль с `uid` и персонализированным контентом
+3. **Система определяет курс** по параметру `course` в URL
+4. После отправки анкеты создается профиль с `uid` и персонализированным контентом **для указанного курса**
 
 ### Важно:
 
@@ -103,29 +130,56 @@ https://pesonalisev2-zxby.vercel.app/survey/iframe?uid={uid}&name={real_name}
 
 ## 🎯 Примеры для конкретных уроков
 
-### Урок 1
+### Курс "Массаж ШВЗ" (shvz)
+
+**Урок 1:**
 ```html
 <div id="persona-lesson-1" 
      data-lesson="1" 
-     data-title="1 Урок введение" 
+     data-title="1 Урок введение"
+     data-course="shvz" 
      style="display:none;margin:30px 0;">
 </div>
 ```
 
-### Урок 2
+**Урок 2:**
 ```html
 <div id="persona-lesson-2" 
      data-lesson="2" 
-     data-title="ШВЗ Мышцы, с которыми мы будем работать в этом курсе" 
+     data-title="ШВЗ Мышцы, с которыми мы будем работать в этом курсе"
+     data-course="shvz" 
      style="display:none;margin:30px 0;">
 </div>
 ```
 
-### Урок 5
+**Урок 5:**
 ```html
 <div id="persona-lesson-5" 
      data-lesson="5" 
-     data-title="1 Урок Демонстрация" 
+     data-title="1 Урок Демонстрация"
+     data-course="shvz" 
+     style="display:none;margin:30px 0;">
+</div>
+```
+
+### Курс "Основы тейпирования" (taping-basics)
+
+**Урок 1:**
+```html
+<div id="persona-lesson-1" 
+     data-lesson="1" 
+     data-title="Введение в тейпирование"
+     data-course="taping-basics" 
+     style="display:none;margin:30px 0;">
+</div>
+```
+
+**Урок 2:**
+```html
+<div id="persona-lesson-2" 
+     data-lesson="2" 
+     data-title="Основы техники наложения тейпов"
+     data-course="taping-basics" 
      style="display:none;margin:30px 0;">
 </div>
 ```

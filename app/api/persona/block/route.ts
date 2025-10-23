@@ -9,6 +9,7 @@ interface BlockRequest {
   user_id: string;
   lesson: string; // lesson slug
   title: string;
+  course?: string; // course slug (optional for backward compatibility)
   flush?: boolean; // игнорировать кэш
 }
 
@@ -19,7 +20,7 @@ interface BlockRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: BlockRequest = await request.json();
-    const { user_id, lesson, title, flush } = body;
+    const { user_id, lesson, title, course, flush } = body;
 
     if (!user_id || !lesson) {
       return NextResponse.json(
@@ -30,27 +31,62 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
 
-    console.log('[/api/persona/block] Request:', { user_id, lesson, title });
+    console.log('[/api/persona/block] Request:', { user_id, lesson, title, course });
 
     // 1. Получаем профиль пользователя по user_identifier
-    const { data: profile } = await supabase
+    // @ts-ignore - Supabase type issues
+    const { data: profileData } = await supabase
       .from("profiles")
-      .select("id, name")
+      .select("id, name, course_id")
       .eq("user_identifier", user_id)
       .maybeSingle();
     
+    const profile = profileData as any;
     console.log('[/api/persona/block] Profile found:', profile ? `ID: ${profile.id}, Name: ${profile.name}` : 'Not found');
 
-    // 2. Получаем урок - СНАЧАЛА пробуем поиск по номеру, затем по названию
+    // 2. Определяем course_id для поиска урока
+    let courseId: string | null = null;
+    
+    // Если передан course slug, ищем курс по нему
+    if (course) {
+      // @ts-ignore - Supabase type issues
+      const { data: courseDataRaw } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("slug", course)
+        .maybeSingle();
+      
+      const courseData = courseDataRaw as any;
+      if (courseData) {
+        courseId = courseData.id;
+        console.log('[/api/persona/block] Course found by slug:', { slug: course, id: courseId });
+      }
+    }
+    
+    // Если course не передан или не найден, используем course_id из профиля
+    if (!courseId && profile?.course_id) {
+      courseId = profile.course_id;
+      console.log('[/api/persona/block] Using course_id from profile:', courseId);
+    }
+
+    // 3. Получаем урок - СНАЧАЛА пробуем поиск по номеру, затем по названию
     let lessonData: any = null;
     
     // Если lesson - это число, ищем по lesson_number
     if (/^\d+$/.test(lesson)) {
       const lessonNumber = parseInt(lesson);
-      const { data: lessonByNumber } = await supabase
+      // @ts-ignore - Supabase type issues
+      let query: any = supabase
         .from("lessons")
-        .select("id, title, lesson_number")
-        .eq("lesson_number", lessonNumber)
+        .select("id, title, lesson_number, course_id")
+        .eq("lesson_number", lessonNumber);
+      
+      // Фильтруем по курсу, если courseId определен
+      if (courseId) {
+        query = query.eq("course_id", courseId);
+      }
+      
+      const { data: lessonByNumber } = await query
         .limit(1)
         .maybeSingle();
       
@@ -61,10 +97,17 @@ export async function POST(request: NextRequest) {
     
     // Если не нашли по номеру, пробуем поиск по названию
     if (!lessonData) {
-      const { data: lessonByTitle } = await supabase
+      let query: any = supabase
         .from("lessons")
-        .select("id, title, lesson_number")
-        .ilike("title", `%${lesson}%`)
+        .select("id, title, lesson_number, course_id")
+        .ilike("title", `%${lesson}%`);
+      
+      // Фильтруем по курсу, если courseId определен
+      if (courseId) {
+        query = query.eq("course_id", courseId);
+      }
+      
+      const { data: lessonByTitle } = await query
         .limit(1)
         .maybeSingle();
       
@@ -74,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!lessonData) {
-      console.log('[/api/persona/block] Lesson not found for:', lesson);
+      console.log('[/api/persona/block] Lesson not found for:', { lesson, courseId });
       return NextResponse.json({
         ok: true,
         html: formatNotFoundAlert(`Урок "${title}" не найден в базе данных.`),
@@ -119,7 +162,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Формируем HTML из персонализации
-    const html = formatPersonalizedContent(personalization);
+    const html = formatPersonalizedContent(personalization as any);
     
     console.log('[/api/persona/block] Returning personalized content, HTML length:', html.length);
 
