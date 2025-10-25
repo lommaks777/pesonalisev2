@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест персонализации Kinesio 2 - Пользователь 21179358</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #666;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .loading { background: #fff3cd; color: #856404; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        #lesson-content {
+            min-height: 200px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест персонализации урока Kinesio 2</h1>
+    
+    <div class="test-section">
+        <h2>📋 Информация о тесте</h2>
+        <p><strong>Пользователь:</strong> 21179358</p>
+        <p><strong>Курс:</strong> Kinesio 2 (kinesio2)</p>
+        <p><strong>Урок:</strong> 1</p>
+        <p><strong>API Endpoint:</strong> <code id="api-url">Загрузка...</code></p>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Действия</h2>
+        <button class="button" onclick="checkUserProfile()">1. Проверить профиль пользователя</button>
+        <button class="button" onclick="checkLesson()">2. Проверить урок</button>
+        <button class="button" onclick="loadPersonalization()">3. Загрузить персонализацию</button>
+        <button class="button" onclick="loadAll()">4. Запустить все проверки</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Результаты проверок</h2>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📄 Персонализированный урок</h2>
+        <div id="lesson-content">
+            <p class="loading">Нажмите кнопку "Загрузить персонализацию" для загрузки урока</p>
+        </div>
+    </div>
+
+    <script>
+        const userId = '21179358';
+        const courseSlug = 'kinesio2';
+        const lessonNumber = 1;
+        const apiBaseUrl = window.location.origin;
+        
+        document.getElementById('api-url').textContent = apiBaseUrl;
+
+        function addResult(title, data, isError = false) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'status ' + (isError ? 'error' : 'success');
+            resultDiv.innerHTML = `
+                <strong>${title}</strong>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function addError(title, error) {
+            addResult(title, { error: error.message || error }, true);
+        }
+
+        async function checkUserProfile() {
+            try {
+                // Check profile via direct DB query endpoint
+                const response = await fetch(`${apiBaseUrl}/api/debug?userId=${userId}`);
+                const data = await response.json();
+                
+                addResult('✅ Проверка профиля через API', {
+                    userId: userId,
+                    response: data,
+                    note: 'Если ошибка - профиль не создан в БД'
+                });
+                
+                return data;
+            } catch (error) {
+                addError('❌ Ошибка проверки профиля', error);
+                return null;
+            }
+        }
+
+        async function checkLesson() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/lessons?course=${courseSlug}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${data.error || 'Unknown error'}`);
+                }
+                
+                const lesson = data.lessons?.find(l => l.lesson_number === lessonNumber);
+                
+                addResult('✅ Информация об уроке', {
+                    found: !!lesson,
+                    lessonId: lesson?.id,
+                    title: lesson?.title,
+                    hasTranscript: !!(lesson?.content?.transcription),
+                    transcriptLength: lesson?.content?.transcription?.length,
+                    hasDefaultDescription: !!lesson?.default_description
+                });
+                
+                return lesson;
+            } catch (error) {
+                addError('❌ Ошибка проверки урока', error);
+                throw error;
+            }
+        }
+
+        async function loadPersonalization() {
+            const contentDiv = document.getElementById('lesson-content');
+            contentDiv.innerHTML = '<p class="loading">⏳ Загрузка персонализации...</p>';
+            
+            try {
+                console.log('Calling /api/persona/block with:', {
+                    user_id: userId,
+                    lesson: lessonNumber.toString(),
+                    course: courseSlug,
+                    title: 'Kinesio 2 - Lesson ' + lessonNumber
+                });
+                
+                const blockResponse = await fetch(`${apiBaseUrl}/api/persona/block`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        lesson: lessonNumber.toString(),
+                        course: courseSlug,
+                        title: 'Kinesio 2 - Lesson ' + lessonNumber
+                    })
+                });
+                
+                if (!blockResponse.ok) {
+                    const errorData = await blockResponse.json();
+                    throw new Error(`API Error (${blockResponse.status}): ${JSON.stringify(errorData)}`);
+                }
+                
+                const blockData = await blockResponse.json();
+                
+                console.log('API Response:', blockData);
+                
+                addResult('✅ Ответ от API /api/persona/block', {
+                    ok: blockData.ok,
+                    hasHtml: !!blockData.html,
+                    htmlLength: blockData.html?.length,
+                    preview: blockData.html?.substring(0, 300) + '...'
+                });
+                
+                // Display the personalized content
+                if (blockData.html) {
+                    contentDiv.innerHTML = blockData.html;
+                    
+                    // Check if it's personalized or default
+                    const isPersonalized = !blockData.html.includes('Заполните анкету');
+                    const personalizationType = isPersonalized ? '✅ Персонализированный' : '⚠️ Стандартный (без анкеты)';
+                    
+                    addResult(`✅ Контент отображён: ${personalizationType}`, {
+                        htmlLength: blockData.html.length,
+                        containsSurveyPrompt: blockData.html.includes('Заполните анкету')
+                    });
+                } else {
+                    contentDiv.innerHTML = '<p class="error">❌ HTML контент не получен</p>';
+                }
+                
+                return blockData;
+            } catch (error) {
+                contentDiv.innerHTML = `<p class="error">❌ Ошибка: ${error.message}</p>`;
+                addError('❌ Ошибка загрузки персонализации', error);
+                throw error;
+            }
+        }
+
+        async function loadAll() {
+            document.getElementById('results').innerHTML = '';
+            
+            try {
+                await checkUserProfile();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await checkLesson();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await loadPersonalization();
+                
+                addResult('✅ Все проверки завершены', {
+                    status: 'success',
+                    timestamp: new Date().toISOString()
+                });
+            } catch (error) {
+                addError('❌ Тестирование прервано', error);
+            }
+        }
+
+        // Auto-load on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Тестовая страница загружена');
+            console.log('Пользователь:', userId);
+            console.log('Курс:', courseSlug);
+            console.log('Урок:', lessonNumber);
+        });
+    </script>
+</body>
+</html>

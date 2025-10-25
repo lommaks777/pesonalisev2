@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-10-24T17:11:24.104Z",
+  "options": {
+    "courseSlug": "kinesio2",
+    "courseTitle": "Kinesio",
+    "kinescopeFolderId": "7ac98c7f-45a4-4026-89c3-c2105d7ddd4d"
+  },
+  "stats": {
+    "total": 29,
+    "successful": 29,
+    "failed": 0,
+    "skipped": 0,
+    "errors": []
+  },
+  "elapsed_minutes": 14.9
+}
