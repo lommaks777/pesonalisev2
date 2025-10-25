@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест урока 2 - Массаж ШВЗ</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    h1 { color: #333; }
+    .info {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .info p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🧪 Тест блока персонализации - Урок 2 (Массаж ШВЗ)</h1>
+    
+    <div class="info">
+      <p><strong>Курс:</strong> massazh-shvz</p>
+      <p><strong>Урок:</strong> 2</p>
+      <p><strong>Название:</strong> 2. Теория. Мышцы, с которыми мы будем работать в этом курс</p>
+      <p><strong>User ID:</strong> <span id="user-id-display">загрузка...</span></p>
+      <p><strong>API:</strong> https://pesonalisev2-zxby.vercel.app/api/persona/block</p>
+    </div>
+
+    <div id="status-log"></div>
+  </div>
+
+  <!-- ТЕСТИРУЕМЫЙ БЛОК -->
+  <div class="test-container">
+    <h2>📦 Блок персонализации:</h2>
+    <div id="persona-lesson-2" 
+         data-lesson="2" 
+         data-title="2. Теория. Мышцы, с которыми мы будем работать в этом курс"
+         data-course="massazh-shvz" 
+         style="display:none;margin:30px 0;">
+      <div class="loading">⏳ Загрузка персонализированного контента...</div>
+    </div>
+  </div>
+
+  <script>
+    const statusLog = document.getElementById('status-log');
+    const userIdDisplay = document.getElementById('user-id-display');
+
+    function log(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = type;
+      div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+      statusLog.appendChild(div);
+      console.log(`[${type}]`, message);
+    }
+
+    (async function(){
+      const API = "https://pesonalisev2-zxby.vercel.app/api/persona";
+      const UID = "{uid}";
+      const userId = UID && UID !== "{uid}" ? String(UID) : "guest";
+      
+      userIdDisplay.textContent = userId;
+      log(`Начало загрузки для пользователя: ${userId}`, 'info');
+
+      const mount = document.getElementById('persona-lesson-2');
+      const lesson = mount.getAttribute('data-lesson');
+      const title = mount.getAttribute('data-title');
+      const course = mount.getAttribute('data-course');
+
+      log(`Параметры: lesson=${lesson}, course=${course}`, 'info');
+
+      try {
+        // Загружаем стили один раз
+        if (!document.querySelector('link[data-persona-styles]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://pesonalisev2-zxby.vercel.app/persona/styles.css';
+          link.setAttribute('data-persona-styles', '1');
+          document.head.appendChild(link);
+          log('Стили загружены', 'success');
+        }
+
+        log('Отправка запроса к API...', 'info');
+        
+        const requestBody = { 
+          user_id: userId, 
+          lesson: lesson,
+          title: title,
+          course: course, 
+          flush: false 
+        };
+        
+        log(`Тело запроса: <pre>${JSON.stringify(requestBody, null, 2)}</pre>`, 'info');
+
+        const r = await fetch(`${API}/block`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(requestBody)
+        });
+        
+        log(`Статус ответа: ${r.status} ${r.statusText}`, r.ok ? 'success' : 'error');
+        
+        const data = await r.json();
+        
+        log(`Ответ API: <pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>`, 'info');
+        
+        if (data?.ok && data?.html) {
+          mount.innerHTML = data.html;
+          mount.style.display = 'block';
+          log('✅ Контент успешно загружен и отображен', 'success');
+          
+          // Проверяем, что именно было загружено
+          const htmlPreview = data.html.substring(0, 300);
+          log(`Превью HTML: <pre>${htmlPreview}...</pre>`, 'info');
+          
+          // Проверяем, есть ли слово "тейпирование" в контенте
+          if (data.html.toLowerCase().includes('тейп')) {
+            log('⚠️ ВНИМАНИЕ: В контенте найдено слово "тейп"!', 'error');
+          }
+          
+        } else {
+          const errorMsg = data?.error || 'неизвестная ошибка';
+          log(`❌ Персонализация недоступна: ${errorMsg}`, 'error');
+          mount.innerHTML = `<div class="error">Не удалось загрузить персонализированный контент: ${errorMsg}</div>`;
+          mount.style.display = 'block';
+        }
+      } catch(e) {
+        log(`❌ Ошибка: ${e.message}`, 'error');
+        log(`Stack: <pre>${e.stack}</pre>`, 'error');
+        console.error('Persona block error:', e);
+      }
+    })();
+  </script>
+</body>
+</html>

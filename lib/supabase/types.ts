@@ -40,6 +40,10 @@ export interface Database {
           title: string;
           summary: string | null;
           content: Json | null;
+          default_description: Json | null;
+          transcription: string | null;
+          kinescope_play_link_id: string | null;
+          kinescope_video_content_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -49,6 +53,10 @@ export interface Database {
           title: string;
           summary?: string | null;
           content?: Json | null;
+          default_description?: Json | null;
+          transcription?: string | null;
+          kinescope_play_link_id?: string | null;
+          kinescope_video_content_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -58,6 +66,10 @@ export interface Database {
           title?: string;
           summary?: string | null;
           content?: Json | null;
+          default_description?: Json | null;
+          transcription?: string | null;
+          kinescope_play_link_id?: string | null;
+          kinescope_video_content_id?: string | null;
           created_at?: string;
         };
       };

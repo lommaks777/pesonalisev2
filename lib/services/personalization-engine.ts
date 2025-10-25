@@ -60,6 +60,7 @@ export interface LessonTranscript {
 
 /**
  * Load lesson transcript from database by lesson ID
+ * Uses direct transcription field (migration 004)
  */
 export async function loadLessonTranscript(
   lessonId: string
@@ -67,26 +68,35 @@ export async function loadLessonTranscript(
   try {
     const supabase = createSupabaseServerClient();
 
+    // Use 'any' for now until types are fully updated
     const { data, error } = await supabase
       .from("lessons")
-      .select("content")
-      .eq("id", lessonId)
-      .single();
+      .select("transcription")
+      .eq("id", lessonId as any)
+      .maybeSingle() as any;
 
-    if (error || !data || !data.content) {
+    if (error) {
       console.error(`Failed to load transcript for lesson ${lessonId}:`, error);
       return null;
     }
 
-    // content is JSONB with structure: { transcription, transcription_length, ... }
-    const content = data.content as LessonTranscript;
+    if (!data || !data.transcription || typeof data.transcription !== 'string') {
+      console.error(`No transcript found for lesson ${lessonId}`);
+      return null;
+    }
 
-    if (!content.transcription || content.transcription.trim().length === 0) {
+    // Check if transcription is empty
+    const transcript = data.transcription as string;
+    if (transcript.trim().length === 0) {
       console.error(`Empty transcript for lesson ${lessonId}`);
       return null;
     }
 
-    return content;
+    return {
+      transcription: transcript,
+      transcription_length: transcript.length,
+      transcription_source: 'database',
+    };
   } catch (error) {
     console.error("Error loading lesson transcript:", error);
     return null;
