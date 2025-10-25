@@ -60,13 +60,26 @@ export async function POST(request: NextRequest) {
       if (courseData) {
         courseId = courseData.id;
         console.log('[/api/persona/block] Course found by slug:', { slug: course, id: courseId });
+      } else {
+        console.log('[/api/persona/block] Course not found by slug:', course);
       }
     }
     
-    // Если course не передан или не найден, используем course_id из профиля
-    if (!courseId && profile?.course_id) {
-      courseId = profile.course_id;
-      console.log('[/api/persona/block] Using course_id from profile:', courseId);
+    // Если course не передан или не найден, используем course_slug из профиля
+    if (!courseId && profile?.course_slug) {
+      console.log('[/api/persona/block] No course param, using profile.course_slug:', profile.course_slug);
+      
+      // @ts-ignore - Supabase type issues
+      const { data: profileCourseData } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("slug", profile.course_slug)
+        .maybeSingle();
+      
+      if (profileCourseData) {
+        courseId = (profileCourseData as any).id;
+        console.log('[/api/persona/block] Using course_id from profile course_slug:', courseId);
+      }
     }
 
     // 3. Получаем урок - СНАЧАЛА пробуем поиск по номеру, затем по названию
