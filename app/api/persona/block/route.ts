@@ -35,14 +35,28 @@ export async function POST(request: NextRequest) {
     console.log('[/api/persona/block] Request:', { user_id, lesson, title, course });
 
     // 1. Получаем профиль пользователя по user_identifier
-    const { data: profileData } = await (supabase
+    const { data: profileData, error: profileError } = await (supabase
       .from("profiles")
-      .select("id, name, course_id, course_slug")
+      .select("id, name, course_slug, survey")
       .eq("user_identifier" as any, user_id as any)
       .maybeSingle() as any);
     
     const profile = profileData as any;
-    console.log('[/api/persona/block] Profile found:', profile ? `ID: ${profile.id}, Name: ${profile.name}` : 'Not found');
+    console.log('[/api/persona/block] Profile lookup:', {
+      user_id,
+      found: !!profile,
+      has_survey: !!(profile?.survey),
+      error: profileError
+    });
+    
+    if (profile) {
+      console.log('[/api/persona/block] Profile details:', {
+        id: profile.id,
+        name: profile.name,
+        course_slug: profile.course_slug,
+        survey_keys: profile.survey ? Object.keys(profile.survey) : []
+      });
+    }
 
     // 2. Определяем course_id для поиска урока (ОБЯЗАТЕЛЬНО)
     let courseId: string | null = null;
