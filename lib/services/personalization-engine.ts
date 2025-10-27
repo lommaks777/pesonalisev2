@@ -60,7 +60,8 @@ export interface LessonTranscript {
 
 /**
  * Load lesson transcript from database by lesson ID
- * Uses direct transcription field (migration 004)
+ * Checks both direct transcription field and content.transcription JSON field
+ * Migration 004 moved transcriptions to direct field, but some may still be in content
  */
 export async function loadLessonTranscript(
   lessonId: string
@@ -71,7 +72,7 @@ export async function loadLessonTranscript(
     // Use 'any' for now until types are fully updated
     const { data, error } = await supabase
       .from("lessons")
-      .select("transcription")
+      .select("transcription, content")
       .eq("id", lessonId as any)
       .maybeSingle() as any;
 
@@ -80,22 +81,43 @@ export async function loadLessonTranscript(
       return null;
     }
 
-    if (!data || !data.transcription || typeof data.transcription !== 'string') {
+    if (!data) {
+      console.error(`No data found for lesson ${lessonId}`);
+      return null;
+    }
+
+    // Check direct transcription field first (migration 004)
+    let transcript = data.transcription as string | null;
+    let source = 'database_direct_field';
+
+    // If not in direct field, check content.transcription (legacy)
+    if (!transcript || typeof transcript !== 'string' || transcript.trim().length === 0) {
+      const content = data.content as any;
+      if (content && content.transcription && typeof content.transcription === 'string') {
+        transcript = content.transcription;
+        source = 'database_content_json';
+        console.log(`⚠️  Lesson ${lessonId} has transcription in content JSON field (legacy), consider migrating to direct field`);
+      }
+    }
+
+    // Final validation
+    if (!transcript || typeof transcript !== 'string') {
       console.error(`No transcript found for lesson ${lessonId}`);
       return null;
     }
 
     // Check if transcription is empty
-    const transcript = data.transcription as string;
     if (transcript.trim().length === 0) {
       console.error(`Empty transcript for lesson ${lessonId}`);
       return null;
     }
 
+    console.log(`✅ Loaded transcript for lesson ${lessonId} from ${source} (${transcript.length} chars)`);
+
     return {
       transcription: transcript,
       transcription_length: transcript.length,
-      transcription_source: 'database',
+      transcription_source: source,
     };
   } catch (error) {
     console.error("Error loading lesson transcript:", error);

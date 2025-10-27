@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       const lessonNumber = parseInt(lesson);
       const { data: lessonByNumber } = await (supabase
         .from("lessons")
-        .select("id, title, lesson_number, course_id, content, default_description")
+        .select("id, title, lesson_number, course_id, content, default_description, transcription")
         .eq("lesson_number" as any, lessonNumber as any)
         .eq("course_id" as any, courseId as any) // ОБЯЗАТЕЛЬНАЯ проверка по курсу
         .maybeSingle() as any);
@@ -116,7 +116,9 @@ export async function POST(request: NextRequest) {
         console.log('[/api/persona/block] ✅ Lesson found by number + course:', { 
           lesson: lessonNumber, 
           course: courseSlug,
-          title: lessonData.title 
+          title: lessonData.title,
+          has_direct_transcription: !!lessonData.transcription,
+          has_content_transcription: !!(lessonData.content?.transcription)
         });
       }
     }
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
     if (!lessonData) {
       const { data: lessonByTitle } = await (supabase
         .from("lessons")
-        .select("id, title, lesson_number, course_id, content, default_description")
+        .select("id, title, lesson_number, course_id, content, default_description, transcription")
         .ilike("title" as any, `%${lesson}%` as any)
         .eq("course_id" as any, courseId as any) // ОБЯЗАТЕЛЬНАЯ проверка по курсу
         .limit(1)
@@ -135,7 +137,9 @@ export async function POST(request: NextRequest) {
         lessonData = lessonByTitle;
         console.log('[/api/persona/block] ✅ Lesson found by title + course:', { 
           title: lessonData.title,
-          course: courseSlug 
+          course: courseSlug,
+          has_direct_transcription: !!lessonData.transcription,
+          has_content_transcription: !!(lessonData.content?.transcription)
         });
       }
     }

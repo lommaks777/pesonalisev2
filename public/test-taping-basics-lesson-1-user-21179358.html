@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест: Урок 1 Taping-Basics для пользователя 21179358</title>
+    <link rel="stylesheet" href="/persona/styles.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .test-controls {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .test-error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .test-success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .test-warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        button.secondary {
+            background: #757575;
+        }
+        button.secondary:hover {
+            background: #616161;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #d32f2f;
+        }
+        #debug-info {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        .diagnostic-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .diagnostic-section h3 {
+            margin-top: 0;
+            color: #2196f3;
+        }
+        .status-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        .status-label {
+            font-weight: bold;
+            display: inline-block;
+            min-width: 200px;
+        }
+        .status-value {
+            color: #666;
+        }
+        .status-ok {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .status-error {
+            color: #f44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест: Урок 1 курса Taping-Basics</h1>
+    
+    <div class="test-info">
+        <h3>ℹ️ Информация о тесте</h3>
+        <p><strong>User ID:</strong> 21179358</p>
+        <p><strong>Имя пользователя:</strong> Алексей</p>
+        <p><strong>Курс:</strong> taping-basics</p>
+        <p><strong>Урок:</strong> 1 - Введение</p>
+    </div>
+
+    <div class="diagnostic-section" id="diagnosticInfo">
+        <h3>🔍 Диагностика пользователя</h3>
+        <div class="status-item">
+            <span class="status-label">Статус профиля:</span>
+            <span class="status-value" id="profileStatus">Проверяется...</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Данные анкеты:</span>
+            <span class="status-value" id="surveyStatus">Проверяется...</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Персонализаций создано:</span>
+            <span class="status-value" id="personalizationCount">Проверяется...</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Транскрипция урока 1:</span>
+            <span class="status-value" id="transcriptionStatus">Проверяется...</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Базовое описание урока 1:</span>
+            <span class="status-value" id="defaultDescStatus">Проверяется...</span>
+        </div>
+    </div>
+
+    <div class="test-controls">
+        <h2>Действия</h2>
+        <button onclick="runDiagnostics()">🔍 Запустить диагностику</button>
+        <button onclick="testPersonalization()">🧪 Тест персонализации</button>
+        <button onclick="generatePersonalization()" class="secondary">⚡ Сгенерировать персонализацию</button>
+        <button onclick="showDebugInfo()" class="secondary">📋 Debug Info</button>
+        <button onclick="clearResults()" class="danger">🗑️ Очистить</button>
+    </div>
+
+    <div id="statusMessage"></div>
+    <div id="result"></div>
+    <div id="debug-info" style="display: none;"></div>
+
+    <script>
+        const USER_ID = '21179358';
+        const COURSE_SLUG = 'taping-basics';
+        const LESSON_NUMBER = 1;
+        let diagnosticData = null;
+        let lastResponse = null;
+
+        // Автоматически запускаем диагностику при загрузке
+        window.onload = () => {
+            setTimeout(() => {
+                runDiagnostics();
+            }, 500);
+        };
+
+        async function runDiagnostics() {
+            console.log('🔍 Running diagnostics...');
+            
+            // For now, we'll use the check script results
+            // Run: npx tsx scripts/check-user-21179358.ts
+            
+            const mockData = {
+                profile: {
+                    id: '1ccb1f9f-d760-4c2b-bd76-13c9d4839c22',
+                    user_identifier: '21179358',
+                    name: 'Алексей',
+                    course_slug: 'taping-basics',
+                    has_survey: true
+                },
+                survey: {
+                    uid: '21179358',
+                    course: 'taping-basics',
+                    real_name: 'Алексей'
+                },
+                personalizations: [],
+                lesson: {
+                    id: '86f9c6a7-4b43-4beb-a827-ad37a73b3a9b',
+                    lesson_number: 1,
+                    title: '1 Введение',
+                    has_transcription: false,
+                    has_default_description: true,
+                    transcription_length: 0
+                }
+            };
+            
+            diagnosticData = mockData;
+            updateDiagnosticUI(mockData);
+            
+            console.log('Using mock diagnostic data. Run npx tsx scripts/check-user-21179358.ts for real data.');
+        }
+
+        function updateDiagnosticUI(data) {
+            // Profile status
+            const profileStatus = document.getElementById('profileStatus');
+            if (data.profile) {
+                profileStatus.innerHTML = `<span class="status-ok">✅ Найден (${data.profile.name})</span>`;
+            } else {
+                profileStatus.innerHTML = '<span class="status-error">❌ Не найден</span>';
+            }
+
+            // Survey status
+            const surveyStatus = document.getElementById('surveyStatus');
+            if (data.profile?.survey) {
+                const survey = data.profile.survey;
+                surveyStatus.innerHTML = `<span class="status-ok">✅ Заполнена</span> (курс: ${survey.course || 'не указан'})`;
+            } else {
+                surveyStatus.innerHTML = '<span class="status-error">❌ Не заполнена</span>';
+            }
+
+            // Personalization count
+            const persCount = document.getElementById('personalizationCount');
+            const count = data.personalizations?.length || 0;
+            if (count > 0) {
+                persCount.innerHTML = `<span class="status-ok">✅ ${count} уроков</span>`;
+            } else {
+                persCount.innerHTML = '<span class="status-error">❌ 0 уроков (нужно сгенерировать)</span>';
+            }
+
+            // Transcription status
+            const transcriptionStatus = document.getElementById('transcriptionStatus');
+            if (data.lesson?.transcription) {
+                const length = data.lesson.transcription.length;
+                transcriptionStatus.innerHTML = `<span class="status-ok">✅ Есть (${length} символов)</span>`;
+            } else {
+                transcriptionStatus.innerHTML = '<span class="status-error">❌ Отсутствует - персонализация невозможна!</span>';
+            }
+
+            // Default description status
+            const defaultDescStatus = document.getElementById('defaultDescStatus');
+            if (data.lesson?.default_description) {
+                defaultDescStatus.innerHTML = '<span class="status-ok">✅ Есть</span>';
+            } else {
+                defaultDescStatus.innerHTML = '<span class="status-error">❌ Отсутствует</span>';
+            }
+
+            // Show message about main issue
+            const statusDiv = document.getElementById('statusMessage');
+            if (!data.lesson?.transcription) {
+                statusDiv.innerHTML = `
+                    <div class="test-error">
+                        <h3>❌ Проблема обнаружена</h3>
+                        <p><strong>Транскрипция урока отсутствует!</strong></p>
+                        <p>Персонализация невозможна без транскрипции урока. 
+                        Система может показать только базовое описание урока (если оно есть).</p>
+                        <p><strong>Решение:</strong> Нужно добавить транскрипцию для урока 1 курса taping-basics.</p>
+                    </div>
+                `;
+            } else if (count === 0) {
+                statusDiv.innerHTML = `
+                    <div class="test-warning">
+                        <h3>⚠️ Персонализация не создана</h3>
+                        <p>Транскрипция есть, но персонализированная версия урока ещё не сгенерирована.</p>
+                        <p><strong>Решение:</strong> Нажмите "Сгенерировать персонализацию" или вызовите API /api/persona/block</p>
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="test-success">
+                        <h3>✅ Всё готово</h3>
+                        <p>Профиль настроен, персонализация создана. Можно тестировать!</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testPersonalization() {
+            const statusDiv = document.getElementById('statusMessage');
+            const resultDiv = document.getElementById('result');
+            
+            statusDiv.innerHTML = '<div class="test-info">⏳ Загрузка персонализированного урока...</div>';
+            resultDiv.innerHTML = '';
+
+            try {
+                const requestBody = {
+                    user_id: USER_ID,
+                    lesson: LESSON_NUMBER.toString(),
+                    title: `Урок ${LESSON_NUMBER}`
+                };
+
+                console.log('Sending request:', requestBody);
+
+                const response = await fetch('/api/persona/block', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                lastResponse = { request: requestBody, response: data, status: response.status };
+
+                console.log('Response received:', data);
+
+                if (!response.ok) {
+                    statusDiv.innerHTML = '<div class="test-error">❌ HTTP Error: ' + response.status + '</div>';
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    return;
+                }
+
+                if (data.ok && data.html) {
+                    const isDefault = data.html.includes('persona-default') || data.html.includes('Базовая версия урока');
+                    const isPersonalized = !isDefault;
+
+                    if (isPersonalized) {
+                        statusDiv.innerHTML = '<div class="test-success">✅ Получена персонализированная версия!</div>';
+                    } else {
+                        statusDiv.innerHTML = '<div class="test-warning">⚠️ Получена базовая версия урока (не персонализированная)</div>';
+                    }
+
+                    resultDiv.innerHTML = data.html;
+                    analyzeContent(data.html);
+                } else {
+                    statusDiv.innerHTML = '<div class="test-error">❌ Invalid response: no HTML</div>';
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="test-error">❌ Request error: ' + error.message + '</div>';
+                console.error('Error:', error);
+            }
+        }
+
+        async function generatePersonalization() {
+            if (!diagnosticData) {
+                alert('Сначала запустите диагностику!');
+                return;
+            }
+
+            if (!diagnosticData.lesson?.transcription) {
+                alert('Невозможно сгенерировать персонализацию без транскрипции урока!');
+                return;
+            }
+
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = '<div class="test-info">⏳ Генерация персонализации... Это может занять 10-30 секунд...</div>';
+
+            try {
+                const response = await fetch('/api/persona/block', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: USER_ID,
+                        lesson: LESSON_NUMBER.toString(),
+                        title: `Урок ${LESSON_NUMBER}`,
+                        flush: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.ok) {
+                    statusDiv.innerHTML = '<div class="test-success">✅ Персонализация успешно создана!</div>';
+                    setTimeout(() => {
+                        runDiagnostics();
+                    }, 1000);
+                } else {
+                    statusDiv.innerHTML = '<div class="test-error">❌ Ошибка генерации: ' + JSON.stringify(data) + '</div>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="test-error">❌ Ошибка: ' + error.message + '</div>';
+            }
+        }
+
+        function analyzeContent(html) {
+            const statusDiv = document.getElementById('statusMessage');
+            
+            const sections = [];
+            const regex = /<h3 class="persona-section-title">([^<]+)<\/h3>/g;
+            let match;
+            while ((match = regex.exec(html)) !== null) {
+                sections.push(match[1].trim());
+            }
+
+            if (sections.length > 0) {
+                statusDiv.innerHTML += '<div class="test-info"><strong>📋 Секции:</strong><br>' + 
+                    sections.map(s => '• ' + s).join('<br>') + '</div>';
+            }
+
+            const hasName = html.includes('Алексей');
+            const hasSurveyButton = html.includes('Заполнить анкету');
+            const isDefaultBadge = html.includes('Базовая версия урока');
+
+            statusDiv.innerHTML += '<div class="test-info"><strong>🔍 Анализ:</strong><br>';
+            statusDiv.innerHTML += '• Упоминание имени: ' + (hasName ? '✅' : '❌') + '<br>';
+            statusDiv.innerHTML += '• Кнопка анкеты: ' + (hasSurveyButton ? '⚠️ Да (базовая)' : '✅ Нет') + '<br>';
+            statusDiv.innerHTML += '• Бейдж базовой версии: ' + (isDefaultBadge ? '❌ Да' : '✅ Нет') + '<br>';
+            statusDiv.innerHTML += '</div>';
+        }
+
+        function showDebugInfo() {
+            const debugDiv = document.getElementById('debug-info');
+            
+            if (debugDiv.style.display === 'none') {
+                const debugData = {
+                    diagnostic: diagnosticData,
+                    lastAPIResponse: lastResponse
+                };
+                debugDiv.textContent = JSON.stringify(debugData, null, 2);
+                debugDiv.style.display = 'block';
+            } else {
+                debugDiv.style.display = 'none';
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('statusMessage').innerHTML = '';
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('debug-info').style.display = 'none';
+            lastResponse = null;
+        }
+    </script>
+</body>
+</html>
