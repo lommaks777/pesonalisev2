@@ -1,0 +1,71 @@
+<div id="persona-lesson-1" 
+     data-lesson="1" 
+     data-title="1 Введение"
+     data-course="taping-basics" 
+     style="display:none;margin:30px 0;">
+</div>
+
+<script>
+(async function(){
+  const API = "https://pesonalisev2-zxby.vercel.app/api/persona";
+  const UID = "21179358";
+  const userId = UID || "guest";  // Исправлено: просто используем UID, если он есть
+  const mount = document.getElementById('persona-lesson-1');
+  const lesson = mount.getAttribute('data-lesson');
+  const title = mount.getAttribute('data-title');
+  const course = mount.getAttribute('data-course');
+
+  console.log('[Persona Debug]', { userId, lesson, title, course });
+
+  try {
+    // Загружаем стили один раз
+    if (!document.querySelector('link[data-persona-styles]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://pesonalisev2-zxby.vercel.app/persona/styles.css';
+      link.setAttribute('data-persona-styles', '1');
+      document.head.appendChild(link);
+    }
+
+    console.log('[Persona] Fetching content...');
+    
+    const r = await fetch(`${API}/block`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ 
+        user_id: userId, 
+        lesson: lesson,
+        title: title,
+        course: course
+      })
+    });
+    
+    const data = await r.json();
+    console.log('[Persona] Response:', data);
+    
+    if (data?.ok && data?.html) {
+      mount.innerHTML = data.html;
+      mount.style.display = 'block';
+      console.log('[Persona] ✅ Content loaded');
+    } else {
+      console.warn('[Persona] ⚠️ Персонализация недоступна:', data?.error || 'неизвестная ошибка');
+      // Показываем ошибку на странице для отладки
+      mount.innerHTML = `<div style="padding:20px;background:#ffebee;border-left:4px solid #f44336;">
+        <h3>⚠️ Персонализация недоступна</h3>
+        <p><strong>Ошибка:</strong> ${data?.error || 'Неизвестная ошибка'}</p>
+        <p><strong>User ID:</strong> ${userId}</p>
+        <p><strong>Lesson:</strong> ${lesson}</p>
+        <p><strong>Course:</strong> ${course}</p>
+      </div>`;
+      mount.style.display = 'block';
+    }
+  } catch(e) {
+    console.error('[Persona] ❌ Error:', e);
+    mount.innerHTML = `<div style="padding:20px;background:#ffebee;border-left:4px solid #f44336;">
+      <h3>❌ Ошибка загрузки</h3>
+      <p>${e.message}</p>
+    </div>`;
+    mount.style.display = 'block';
+  }
+})();
+</script>
