@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CORS_HEADERS, createOptionsHandler } from "@/lib/utils/http";
 import { formatPersonalizedContent, formatSurveyAlert, formatNotFoundAlert, formatPersonalizationUnavailableAlert, formatDefaultTemplateContent } from "@/lib/services/html-formatter";
-import { getPersonalization } from "@/lib/services/personalization";
+import { getPersonalization, savePersonalization } from "@/lib/services/personalization";
 import { loadLessonTemplate, detectTemplateFormat, transformEmojiToNew } from "@/lib/services/lesson-templates";
+import { loadLessonTranscript, generatePersonalizedDescription } from "@/lib/services/personalization-engine";
 
 interface BlockRequest {
   user_id: string;
@@ -188,16 +189,76 @@ export async function POST(request: NextRequest) {
       }, { headers: CORS_HEADERS });
     }
 
-    // 3. Получаем персонализацию для этого урока
-    const personalization = await getPersonalization(profile.id, lessonData.id);
+    // 3. Get or generate personalization for this lesson
+    let personalization = await getPersonalization(profile.id, lessonData.id);
     
     console.log('[/api/persona/block] Personalization found:', personalization ? 'Yes' : 'No');
+    
+    if (!personalization && !flush) {
+      // Try to generate personalization if it doesn't exist
+      console.log('[/api/persona/block] Attempting to generate personalization...');
+      
+      // Load transcript
+      const transcriptData = await loadLessonTranscript(lessonData.id);
+      
+      if (transcriptData && profile.survey) {
+        console.log('[/api/persona/block] Transcript found, generating with AI...');
+        
+        try {
+          const personalizedContent = await generatePersonalizedDescription(
+            lessonData.id,
+            transcriptData.transcription,
+            {
+              lesson_number: lessonData.lesson_number,
+              title: lessonData.title,
+            },
+            profile.survey as any,
+            profile.name || 'Friend'
+          );
+          
+          // Save the generated personalization
+          await savePersonalization(profile.id, lessonData.id, personalizedContent);
+          
+          // Retrieve the saved personalization
+          personalization = await getPersonalization(profile.id, lessonData.id);
+          
+          console.log('[/api/persona/block] ✅ Personalization generated and saved');
+        } catch (generateError) {
+          console.error('[/api/persona/block] Error generating personalization:', generateError);
+          // Continue to return default if generation fails
+        }
+      } else {
+        console.log('[/api/persona/block] Cannot generate: missing transcript or survey');
+      }
+    }
+    
     if (personalization) {
       console.log('[/api/persona/block] Personalization keys:', Object.keys(personalization));
     }
 
     if (!personalization) {
-      console.log('[/api/persona/block] No personalization, returning alert');
+      console.log('[/api/persona/block] No personalization available, returning default description');
+      
+      // Return default description if available
+      const defaultDescription = (lessonData as any).default_description;
+      
+      if (defaultDescription) {
+        const html = formatDefaultTemplateContent(
+          defaultDescription,
+          {
+            lesson_number: lessonData.lesson_number,
+            title: lessonData.title,
+          },
+          true // include survey CTA
+        );
+        
+        return NextResponse.json({
+          ok: true,
+          html: html,
+        }, { headers: CORS_HEADERS });
+      }
+      
+      // Last resort: return unavailable alert
       return NextResponse.json({
         ok: true,
         html: formatPersonalizationUnavailableAlert(user_id),

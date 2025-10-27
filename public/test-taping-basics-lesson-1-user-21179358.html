@@ -359,18 +359,8 @@
         }
 
         async function generatePersonalization() {
-            if (!diagnosticData) {
-                alert('Сначала запустите диагностику!');
-                return;
-            }
-
-            if (!diagnosticData.lesson?.transcription) {
-                alert('Невозможно сгенерировать персонализацию без транскрипции урока!');
-                return;
-            }
-
             const statusDiv = document.getElementById('statusMessage');
-            statusDiv.innerHTML = '<div class="test-info">⏳ Генерация персонализации... Это может занять 10-30 секунд...</div>';
+            statusDiv.innerHTML = '<div class="test-info">⏳ Generating personalization... This will take 10-30 seconds...</div>';
 
             try {
                 const response = await fetch('/api/persona/block', {
@@ -381,23 +371,38 @@
                     body: JSON.stringify({
                         user_id: USER_ID,
                         lesson: LESSON_NUMBER.toString(),
-                        title: `Урок ${LESSON_NUMBER}`,
-                        flush: true
+                        course: COURSE_SLUG,
+                        title: `Урок ${LESSON_NUMBER}`
                     })
                 });
 
                 const data = await response.json();
 
                 if (response.ok && data.ok) {
-                    statusDiv.innerHTML = '<div class="test-success">✅ Персонализация успешно создана!</div>';
+                    statusDiv.innerHTML = '<div class="test-success">✅ Request completed! Checking if personalization was generated...</div>';
+                    
+                    // Wait a moment then refresh diagnostics
                     setTimeout(() => {
                         runDiagnostics();
-                    }, 1000);
+                        
+                        // Show the result
+                        if (data.html) {
+                            const resultDiv = document.getElementById('result');
+                            resultDiv.innerHTML = data.html;
+                            
+                            // Check if it's personalized
+                            if (data.html.includes('introduction') || data.html.includes('Алексей')) {
+                                statusDiv.innerHTML = '<div class="test-success">🎉 PERSONALIZATION GENERATED SUCCESSFULLY!</div>';
+                            } else {
+                                statusDiv.innerHTML = '<div class="test-warning">⚠️ Response received but may be default content</div>';
+                            }
+                        }
+                    }, 2000);
                 } else {
-                    statusDiv.innerHTML = '<div class="test-error">❌ Ошибка генерации: ' + JSON.stringify(data) + '</div>';
+                    statusDiv.innerHTML = '<div class="test-error">❌ Error: ' + JSON.stringify(data) + '</div>';
                 }
             } catch (error) {
-                statusDiv.innerHTML = '<div class="test-error">❌ Ошибка: ' + error.message + '</div>';
+                statusDiv.innerHTML = '<div class="test-error">❌ Error: ' + error.message + '</div>';
             }
         }
 
