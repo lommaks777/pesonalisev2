@@ -28,6 +28,12 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Map course slug to storage directory
+const STORAGE_DIR_MAP: Record<string, string> = {
+  'massazh-shvz': 'shvz',  // slug -> actual folder name
+  'taping-basics': 'taping-basics'
+};
+
 // Course definitions from courses_rules.md
 const COURSES = {
   'massazh-shvz': {
@@ -86,17 +92,29 @@ const COURSES = {
  * Load transcription from .txt file
  */
 function loadTranscription(courseSlug: string, lessonNumber: number): string | null {
-  const storePath = path.join(process.cwd(), 'store', courseSlug);
+  const storageDir = STORAGE_DIR_MAP[courseSlug] || courseSlug;
+  const storePath = path.join(process.cwd(), 'store', storageDir);
   
   try {
     // Try to find .txt file matching lesson number
+    // Patterns: {N}-{N}-{uuid}.txt, {N}-{uuid}.txt
     const files = fs.readdirSync(storePath);
-    const transcriptFile = files.find(f => 
-      f.startsWith(`${lessonNumber}-`) && f.endsWith('.txt')
-    );
+    const transcriptFile = files.find(f => {
+      if (!f.endsWith('.txt')) return false;
+      
+      // Pattern 1: {N}-{N}-{uuid}.txt (e.g., 1-1-abc.txt, 10-10-def.txt)
+      if (f.startsWith(`${lessonNumber}-${lessonNumber}-`)) return true;
+      
+      // Pattern 2: {N}-{uuid}.txt (e.g., 1-abc.txt)
+      const parts = f.split('-');
+      if (parts.length >= 2 && parts[0] === String(lessonNumber)) return true;
+      
+      return false;
+    });
     
     if (transcriptFile) {
       const content = fs.readFileSync(path.join(storePath, transcriptFile), 'utf-8');
+      console.log(`      Found transcription: ${transcriptFile}`);
       return content.trim();
     }
   } catch (error) {
@@ -110,7 +128,8 @@ function loadTranscription(courseSlug: string, lessonNumber: number): string | n
  * Load default description from -final.json file
  */
 function loadDefaultDescription(courseSlug: string, lessonNumber: number): any {
-  const storePath = path.join(process.cwd(), 'store', courseSlug);
+  const storageDir = STORAGE_DIR_MAP[courseSlug] || courseSlug;
+  const storePath = path.join(process.cwd(), 'store', storageDir);
   
   // Try multiple possible file patterns
   const patterns = [
@@ -230,6 +249,7 @@ async function resetAndPopulate() {
       let withDescription = 0;
       
       for (const lesson of courseData.lessons) {
+        console.log(`  Loading lesson ${lesson.number}...`);
         const transcription = loadTranscription(slug, lesson.number);
         const defaultDescription = loadDefaultDescription(slug, lesson.number);
         

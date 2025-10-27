@@ -19,6 +19,8 @@
     "templates:regenerate": "tsx scripts/regenerate-lesson-templates.ts",
     "templates:generate": "tsx --env-file=.env.local scripts/generate-course-templates.ts",
     "course:process-transcripts": "tsx --env-file=.env.local scripts/process-course-transcripts.ts",
+    "course:generate-transcripts": "tsx --env-file=.env.local scripts/generate-transcripts-from-urls.ts",
+    "course:generate-defaults": "tsx --env-file=.env.local scripts/generate-default-descriptions.ts",
     "course:process-from-url": "tsx --env-file=.env.local scripts/process-course-from-url.ts",
     "course:check-videos": "tsx --env-file=.env.local scripts/check-kinescope-video-details.ts",
     "test": "vitest run",
