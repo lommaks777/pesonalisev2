@@ -34,139 +34,143 @@ export async function POST(request: NextRequest) {
     console.log('[/api/persona/block] Request:', { user_id, lesson, title, course });
 
     // 1. Получаем профиль пользователя по user_identifier
-    // @ts-ignore - Supabase type issues
-    const { data: profileData } = await supabase
+    const { data: profileData } = await (supabase
       .from("profiles")
-      .select("id, name, course_id")
-      .eq("user_identifier", user_id)
-      .maybeSingle();
+      .select("id, name, course_id, course_slug")
+      .eq("user_identifier" as any, user_id as any)
+      .maybeSingle() as any);
     
     const profile = profileData as any;
     console.log('[/api/persona/block] Profile found:', profile ? `ID: ${profile.id}, Name: ${profile.name}` : 'Not found');
 
-    // 2. Определяем course_id для поиска урока
+    // 2. Определяем course_id для поиска урока (ОБЯЗАТЕЛЬНО)
     let courseId: string | null = null;
+    let courseSlug: string | null = null;
     
     // Если передан course slug, ищем курс по нему
     if (course) {
-      // @ts-ignore - Supabase type issues
-      const { data: courseDataRaw } = await supabase
+      const { data: courseDataRaw } = await (supabase
         .from("courses")
-        .select("id")
-        .eq("slug", course)
-        .maybeSingle();
+        .select("id, slug")
+        .eq("slug" as any, course as any)
+        .maybeSingle() as any);
       
       const courseData = courseDataRaw as any;
       if (courseData) {
         courseId = courseData.id;
+        courseSlug = courseData.slug;
         console.log('[/api/persona/block] Course found by slug:', { slug: course, id: courseId });
       } else {
-        console.log('[/api/persona/block] Course not found by slug:', course);
+        console.log('[/api/persona/block] ❌ Course not found by slug:', course);
+        // Курс не найден - не показываем ничего
+        return NextResponse.json({
+          ok: false,
+          error: `Course "${course}" not found`,
+          html: '',
+        }, { status: 404, headers: CORS_HEADERS });
       }
     }
     
-    // Если course не передан или не найден, используем course_slug из профиля
+    // Если course не передан, используем course_slug из профиля
     if (!courseId && profile?.course_slug) {
       console.log('[/api/persona/block] No course param, using profile.course_slug:', profile.course_slug);
       
-      // @ts-ignore - Supabase type issues
-      const { data: profileCourseData } = await supabase
+      const { data: profileCourseData } = await (supabase
         .from("courses")
-        .select("id")
-        .eq("slug", profile.course_slug)
-        .maybeSingle();
+        .select("id, slug")
+        .eq("slug" as any, profile.course_slug as any)
+        .maybeSingle() as any);
       
       if (profileCourseData) {
         courseId = (profileCourseData as any).id;
+        courseSlug = (profileCourseData as any).slug;
         console.log('[/api/persona/block] Using course_id from profile course_slug:', courseId);
       }
     }
+    
+    // Если courseId все еще не определен - ошибка
+    if (!courseId) {
+      console.log('[/api/persona/block] ❌ No course specified and no profile course_slug');
+      return NextResponse.json({
+        ok: false,
+        error: 'Course must be specified or user must have a course in profile',
+        html: '',
+      }, { status: 400, headers: CORS_HEADERS });
+    }
 
-    // 3. Получаем урок - СНАЧАЛА пробуем поиск по номеру, затем по названию
+    // 3. Получаем урок - СТРОГО по номеру урока + course_id
     let lessonData: any = null;
     
-    // Если lesson - это число, ищем по lesson_number
+    // Если lesson - это число, ищем по lesson_number + course_id
     if (/^\d+$/.test(lesson)) {
       const lessonNumber = parseInt(lesson);
-      // @ts-ignore - Supabase type issues
-      let query: any = supabase
+      const { data: lessonByNumber } = await (supabase
         .from("lessons")
-        .select("id, title, lesson_number, course_id, content")
-        .eq("lesson_number", lessonNumber);
-      
-      // Фильтруем по курсу, если courseId определен
-      if (courseId) {
-        query = query.eq("course_id", courseId);
-      }
-      
-      const { data: lessonByNumber } = await query
-        .limit(1)
-        .maybeSingle();
+        .select("id, title, lesson_number, course_id, content, default_description")
+        .eq("lesson_number" as any, lessonNumber as any)
+        .eq("course_id" as any, courseId as any) // ОБЯЗАТЕЛЬНАЯ проверка по курсу
+        .maybeSingle() as any);
       
       if (lessonByNumber) {
         lessonData = lessonByNumber;
+        console.log('[/api/persona/block] ✅ Lesson found by number + course:', { 
+          lesson: lessonNumber, 
+          course: courseSlug,
+          title: lessonData.title 
+        });
       }
     }
     
-    // Если не нашли по номеру, пробуем поиск по названию
+    // Если не нашли по номеру, пробуем поиск по названию (но ТОЛЬКО в рамках курса)
     if (!lessonData) {
-      let query: any = supabase
+      const { data: lessonByTitle } = await (supabase
         .from("lessons")
-        .select("id, title, lesson_number, course_id, content")
-        .ilike("title", `%${lesson}%`);
-      
-      // Фильтруем по курсу, если courseId определен
-      if (courseId) {
-        query = query.eq("course_id", courseId);
-      }
-      
-      const { data: lessonByTitle } = await query
+        .select("id, title, lesson_number, course_id, content, default_description")
+        .ilike("title" as any, `%${lesson}%` as any)
+        .eq("course_id" as any, courseId as any) // ОБЯЗАТЕЛЬНАЯ проверка по курсу
         .limit(1)
-        .maybeSingle();
+        .maybeSingle() as any);
       
       if (lessonByTitle) {
         lessonData = lessonByTitle;
+        console.log('[/api/persona/block] ✅ Lesson found by title + course:', { 
+          title: lessonData.title,
+          course: courseSlug 
+        });
       }
     }
 
     if (!lessonData) {
-      console.log('[/api/persona/block] Lesson not found for:', { lesson, courseId });
+      console.log('[/api/persona/block] ❌ Lesson not found for:', { lesson, course: courseSlug });
+      // Урок не найден в указанном курсе - не показываем ничего
       return NextResponse.json({
-        ok: true,
-        html: formatNotFoundAlert(`Урок "${title}" не найден в базе данных.`),
-      }, { headers: CORS_HEADERS });
+        ok: false,
+        error: `Lesson "${lesson}" not found in course "${courseSlug}"`,
+        html: '',
+      }, { status: 404, headers: CORS_HEADERS });
     }
     
     console.log('[/api/persona/block] Lesson found:', { id: lessonData.id, number: lessonData.lesson_number, title: lessonData.title });
 
     if (!profile) {
-      console.log('[/api/persona/block] Profile not found, returning default template');
-      // Пользователь не найден - возвращаем базовый шаблон урока
+      console.log('[/api/persona/block] Profile not found, returning default description');
+      // Пользователь не найден - возвращаем default_description из БД
       
-      // Сначала проверяем, есть ли шаблон в БД
-      const templateFromDb = (lessonData as any).content?.template;
+      const defaultDescription = (lessonData as any).default_description;
       
-      let template;
-      if (templateFromDb) {
-        console.log('[/api/persona/block] Using template from database');
-        // Определяем формат и трансформируем если нужно
-        const format = detectTemplateFormat(templateFromDb);
-        console.log('[/api/persona/block] Template format:', format);
-        
-        if (format === 'emoji') {
-          template = transformEmojiToNew(templateFromDb);
-          console.log('[/api/persona/block] Transformed emoji template to standard format');
-        } else {
-          template = templateFromDb;
-        }
-      } else {
-        console.log('[/api/persona/block] Loading template from file system (fallback)');
-        // Fallback: загружаем из файловой системы (только для shvz)
-        template = await loadLessonTemplate(lessonData.lesson_number);
+      if (!defaultDescription) {
+        console.log('[/api/persona/block] ⚠️ No default_description available for this lesson');
+        return NextResponse.json({
+          ok: false,
+          error: 'No default description available for this lesson',
+          html: '',
+        }, { status: 404, headers: CORS_HEADERS });
       }
       
+      console.log('[/api/persona/block] Using default_description from database');
+      
       const html = formatDefaultTemplateContent(
-        template,
+        defaultDescription,
         {
           lesson_number: lessonData.lesson_number,
           title: lessonData.title,
