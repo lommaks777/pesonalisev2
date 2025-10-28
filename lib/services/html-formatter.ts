@@ -239,11 +239,7 @@ export function formatDefaultTemplateContent(
     <div class="persona-block persona-default">
       ${includeSurveyCTA ? `
         <div class="persona-section persona-default-header">
-          <div class="persona-badge">📘 Базовая версия урока</div>
-          <p class="persona-text-muted">Заполните анкету, чтобы получить персонализированные рекомендации специально для вас.</p>
-          <a href="https://shkolamasterov.online/pl/teach/control/lesson/view?id=342828951" class="persona-btn-secondary" target="_blank">
-            Заполнить анкету
-          </a>
+          <p class="persona-text-muted">Заполните анкету в первом уроке, чтобы получить персонализированные рекомендации специально для вас.</p>
         </div>
       ` : ''}
 
