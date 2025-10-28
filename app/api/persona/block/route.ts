@@ -231,9 +231,26 @@ export async function POST(request: NextRequest) {
     let personalization = await getPersonalization(profile.id, lessonData.id);
     
     console.log('[/api/persona/block] Personalization found:', personalization ? 'Yes' : 'No');
+    console.log('[/api/persona/block] Flush requested:', flush);
     
-    if (!personalization && !flush) {
-      // Try to generate personalization if it doesn't exist
+    // If flush is true, regenerate personalization
+    if (flush && personalization) {
+      console.log('[/api/persona/block] Flush=true, deleting existing personalization...');
+      
+      // Delete old personalization
+      const supabase = createSupabaseServerClient();
+      await supabase
+        .from('personalized_lesson_descriptions')
+        .delete()
+        .eq('profile_id', profile.id)
+        .eq('lesson_id', lessonData.id);
+      
+      personalization = null; // Force regeneration
+      console.log('[/api/persona/block] Old personalization deleted');
+    }
+    
+    if (!personalization) {
+      // Try to generate personalization if it doesn't exist or flush requested
       console.log('[/api/persona/block] Attempting to generate personalization...');
       
       // Load transcript
@@ -241,6 +258,7 @@ export async function POST(request: NextRequest) {
       
       if (transcriptData && profile.survey) {
         console.log('[/api/persona/block] Transcript found, generating with AI...');
+        console.log('[/api/persona/block] Using name:', profile.name);
         
         try {
           const personalizedContent = await generatePersonalizedDescription(
