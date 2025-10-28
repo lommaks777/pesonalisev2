@@ -34,31 +34,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[/api/persona/block] Request:', { user_id, lesson, title, course });
 
-    // 1. Получаем профиль пользователя по user_identifier
-    const { data: profileData, error: profileError } = await (supabase
-      .from("profiles")
-      .select("id, name, course_slug, survey")
-      .eq("user_identifier" as any, user_id as any)
-      .maybeSingle() as any);
-    
-    const profile = profileData as any;
-    console.log('[/api/persona/block] Profile lookup:', {
-      user_id,
-      found: !!profile,
-      has_survey: !!(profile?.survey),
-      error: profileError
-    });
-    
-    if (profile) {
-      console.log('[/api/persona/block] Profile details:', {
-        id: profile.id,
-        name: profile.name,
-        course_slug: profile.course_slug,
-        survey_keys: profile.survey ? Object.keys(profile.survey) : []
-      });
-    }
-
-    // 2. Определяем course_id для поиска урока (ОБЯЗАТЕЛЬНО)
+    // 1. Определяем course_id и course_slug СНАЧАЛА
     let courseId: string | null = null;
     let courseSlug: string | null = null;
     
@@ -77,7 +53,6 @@ export async function POST(request: NextRequest) {
         console.log('[/api/persona/block] Course found by slug:', { slug: course, id: courseId });
       } else {
         console.log('[/api/persona/block] ❌ Course not found by slug:', course);
-        // Курс не найден - не показываем ничего
         return NextResponse.json({
           ok: false,
           error: `Course "${course}" not found`,
@@ -85,7 +60,56 @@ export async function POST(request: NextRequest) {
         }, { status: 404, headers: CORS_HEADERS });
       }
     }
+
+    // 2. Получаем профиль пользователя - ФИЛЬТРУЕМ ПО КУРСУ!
+    let profileData: any = null;
+    let profileError: any = null;
     
+    if (courseSlug) {
+      // Если курс указан, ищем профиль ДЛЯ ЭТОГО курса
+      const result = await (supabase
+        .from("profiles")
+        .select("id, name, course_slug, survey")
+        .eq("user_identifier" as any, user_id as any)
+        .eq("course_slug" as any, courseSlug as any)
+        .maybeSingle() as any);
+      profileData = result.data;
+      profileError = result.error;
+      console.log('[/api/persona/block] Profile lookup (filtered by course):', {
+        user_id,
+        course: courseSlug,
+        found: !!profileData,
+        has_survey: !!(profileData?.survey),
+        error: profileError
+      });
+    } else {
+      // Если курс не указан, берем любой профиль (старое поведение)
+      const result = await (supabase
+        .from("profiles")
+        .select("id, name, course_slug, survey")
+        .eq("user_identifier" as any, user_id as any)
+        .maybeSingle() as any);
+      profileData = result.data;
+      profileError = result.error;
+      console.log('[/api/persona/block] Profile lookup (no course filter):', {
+        user_id,
+        found: !!profileData,
+        has_survey: !!(profileData?.survey),
+        error: profileError
+      });
+    }
+    
+    const profile = profileData as any;
+    
+    if (profile) {
+      console.log('[/api/persona/block] Profile details:', {
+        id: profile.id,
+        name: profile.name,
+        course_slug: profile.course_slug,
+        survey_keys: profile.survey ? Object.keys(profile.survey) : []
+      });
+    }
+
     // Если course не передан, используем course_slug из профиля
     if (!courseId && profile?.course_slug) {
       console.log('[/api/persona/block] No course param, using profile.course_slug:', profile.course_slug);
