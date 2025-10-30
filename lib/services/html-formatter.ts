@@ -195,14 +195,19 @@ export function formatPersonalizationUnavailableAlert(userId: string): string {
 /**
  * Formats default lesson template as HTML
  * Used when user profile is not found or personalization doesn't exist yet
- * Supports both new format (English keys) and old format (emoji keys)
+ * Supports both new format (default_description with what_you_will_learn, key_techniques)
+ * and old format (lesson templates with key_points, practical_tips)
  */
 export function formatDefaultTemplateContent(
   template: LessonTemplate | Record<string, any>,
   lessonInfo: { lesson_number: number; title: string },
   includeSurveyCTA: boolean = true
 ): string {
-  // Detect format: new (English keys) or old (emoji keys)
+  // Detect format:
+  // 1. New default_description format (from generate-default-descriptions.ts)
+  // 2. Old template format (from lesson templates)
+  // 3. Old emoji format (from migration 002)
+  const isDefaultDescription = 'what_you_will_learn' in template || 'key_techniques' in template;
   const isOldEmojiFormat = '👋 Введение' in template || '🔑 Ключевые моменты' in template;
   
   let introduction: string;
@@ -213,7 +218,17 @@ export function formatDefaultTemplateContent(
   let homework: string;
   let motivationalLine: string;
   
-  if (isOldEmojiFormat) {
+  if (isDefaultDescription) {
+    // New default_description format
+    const desc = template as any;
+    introduction = desc.introduction || "";
+    keyPoints = Array.isArray(desc.what_you_will_learn) ? desc.what_you_will_learn : [];
+    practicalTips = Array.isArray(desc.key_techniques) ? desc.key_techniques : [];
+    importantNotes = undefined; // not in new format
+    equipmentPreparation = desc.equipment_needed;
+    homework = desc.homework || "";
+    motivationalLine = desc.motivational_note || "";
+  } else if (isOldEmojiFormat) {
     // Old format with emoji keys (from migration 002)
     const oldTemplate = template as any;
     introduction = oldTemplate['👋 Введение'] || oldTemplate['👋 Introduction'] || "";
@@ -224,7 +239,7 @@ export function formatDefaultTemplateContent(
     homework = oldTemplate['📚 Домашнее задание'] || oldTemplate['📚 Homework'] || "";
     motivationalLine = oldTemplate['_мотивационная строка_'] || oldTemplate['_motivational line_'] || "";
   } else {
-    // New format with English keys
+    // Old template format with English keys
     const newTemplate = template as LessonTemplate;
     introduction = newTemplate.introduction || "";
     keyPoints = newTemplate.key_points || [];
@@ -252,7 +267,7 @@ export function formatDefaultTemplateContent(
 
       ${keyPoints.length > 0 ? `
         <div class="persona-section">
-          <h3 class="persona-section-title">🔑 Ключевые моменты</h3>
+          <h3 class="persona-section-title">🎯 Что вы узнаете</h3>
           <ul class="persona-list persona-key-points">
             ${keyPoints.map(point => `<li class="persona-list-item">${escapeHtml(point)}</li>`).join('')}
           </ul>
@@ -261,7 +276,7 @@ export function formatDefaultTemplateContent(
 
       ${practicalTips.length > 0 ? `
         <div class="persona-section">
-          <h3 class="persona-section-title">💡 Практические советы</h3>
+          <h3 class="persona-section-title">🔑 Ключевые техники</h3>
           <ul class="persona-list persona-tips">
             ${practicalTips.map(tip => `<li class="persona-list-item">${escapeHtml(tip)}</li>`).join('')}
           </ul>

@@ -1,4 +1,9 @@
-import "dotenv/config";
+#!/usr/bin/env tsx
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), '.env.local') });
 import { createClient } from '@supabase/supabase-js';
 import { getOpenAIClient } from "../lib/services/openai";
 
@@ -127,21 +132,34 @@ async function updateUserPersonalizations(userId: string) {
     // 1. Получаем профиль пользователя
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, name, survey")
+      .select("id, name, survey, course_slug")
       .eq("user_identifier", userId)
-      .single();
+      .maybeSingle();
 
     if (profileError || !profile) {
       console.error(`❌ Пользователь ${userId} не найден:`, profileError?.message);
       return;
     }
 
-    console.log(`✅ Найден профиль: ${profile.name}`);
+    console.log(`✅ Найден профиль: ${profile.name} (курс: ${profile.course_slug})`);
 
-    // 2. Получаем все уроки с расшифровками
+    // 2. Получаем курс ID
+    const { data: course } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("slug", profile.course_slug)
+      .single();
+
+    if (!course) {
+      console.error(`❌ Курс ${profile.course_slug} не найден`);
+      return;
+    }
+
+    // 3. Получаем все уроки курса с расшифровками
     const { data: lessons, error: lessonsError } = await supabase
       .from("lessons")
       .select("id, lesson_number, title, content")
+      .eq("course_id", course.id)
       .order("lesson_number", { ascending: true });
 
     if (lessonsError || !lessons) {
@@ -151,9 +169,9 @@ async function updateUserPersonalizations(userId: string) {
 
     console.log(`📚 Найдено ${lessons.length} уроков`);
 
-    // 3. Удаляем старые персонализации
+    // 4. Удаляем старые персонализации
     const { error: deleteError } = await supabase
-      .from("personalized_lesson_descriptions")
+      .from("personalizations")
       .delete()
       .eq("profile_id", profile.id);
 
@@ -163,7 +181,7 @@ async function updateUserPersonalizations(userId: string) {
       console.log("🗑️ Старые персонализации удалены");
     }
 
-    // 4. Генерируем новые персонализации с НОВЫМ движком (прямо из расшифровок)
+    // 5. Генерируем новые персонализации с НОВЫМ движком (прямо из расшифровок)
     const results = [];
     for (const lesson of lessons) {
       console.log(`🔄 Генерируем персонализацию для урока ${lesson.lesson_number}...`);
@@ -193,7 +211,7 @@ async function updateUserPersonalizations(userId: string) {
 
         // Сохраняем персонализацию
         const { error: saveError } = await supabase
-          .from("personalized_lesson_descriptions")
+          .from("personalizations")
           .insert({
             profile_id: profile.id,
             lesson_id: lesson.id,

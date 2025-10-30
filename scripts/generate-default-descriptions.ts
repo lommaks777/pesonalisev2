@@ -48,18 +48,21 @@ ${transcript}
 INSTRUCTIONS:
 Create a structured lesson description with the following sections. Use ONLY information from the transcript. Be factual, clear, and professional.
 
+**IMPORTANT: Your response MUST be in RUSSIAN language. All content must be written in Russian.**
+
 Return your response as valid JSON with this exact structure:
 {
-  "introduction": "2-3 sentences introducing the lesson topic and its importance",
-  "what_you_will_learn": "3-4 bullet points of specific knowledge/skills covered (each 1-2 sentences)",
-  "practical_benefits": "2-3 sentences explaining how this knowledge helps in practice",
-  "key_techniques": "3-4 bullet points of main techniques/methods taught (each 1-2 sentences)",
-  "equipment_needed": "Optional: 1-2 sentences listing required materials/equipment if mentioned",
-  "homework": "2-3 sentences with a practical assignment for students to complete",
-  "motivational_note": "1 inspiring sentence to encourage students"
+  "introduction": "2-3 sentences introducing the lesson topic and its importance (IN RUSSIAN)",
+  "what_you_will_learn": "3-4 bullet points of specific knowledge/skills covered (each 1-2 sentences, IN RUSSIAN)",
+  "practical_benefits": "2-3 sentences explaining how this knowledge helps in practice (IN RUSSIAN)",
+  "key_techniques": "3-4 bullet points of main techniques/methods taught (each 1-2 sentences, IN RUSSIAN)",
+  "equipment_needed": "Optional: 1-2 sentences listing required materials/equipment if mentioned (IN RUSSIAN)",
+  "homework": "2-3 sentences with a practical assignment for students to complete (IN RUSSIAN)",
+  "motivational_note": "1 inspiring sentence to encourage students (IN RUSSIAN)"
 }
 
 IMPORTANT:
+- **Write EVERYTHING in RUSSIAN language**
 - Use clear, simple language
 - Be specific and concrete (mention actual techniques, muscle names, etc. from transcript)
 - Keep it professional but friendly
@@ -73,7 +76,7 @@ IMPORTANT:
       messages: [
         {
           role: 'system',
-          content: 'You are an expert educational content creator. You create clear, structured lesson descriptions based on transcripts. You always respond with valid JSON only.',
+          content: 'You are an expert educational content creator. You create clear, structured lesson descriptions based on transcripts. You always respond with valid JSON only. ALL your responses MUST be in RUSSIAN language.',
         },
         {
           role: 'user',
